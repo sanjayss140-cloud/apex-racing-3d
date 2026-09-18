@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>APEX RUSH — 3D Hypercar Circuit</title>
+    <script type="module" crossorigin src="/assets/index-BPr8188x.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BNy-6ZRQ.css">
+  </head>
+  <body>
+    <!-- WebGL Canvas Container -->
+    <div id="canvas-container"></div>
+
+    <!-- High-Speed Vignette Blur Overlay -->
+    <div id="speed-overlay" class="speed-overlay"></div>
+
+    <!-- Top Race Navigation Bar -->
+    <header class="race-top-bar">
+      <div class="game-brand glass">
+        <div class="game-title">APEX<span>RUSH</span></div>
+        <div id="cp-badge" class="checkpoint-badge">GATE 1 / 7</div>
+      </div>
+
+      <div class="timer-box glass">
+        <div id="lap-time" class="timer-val">00:00.000</div>
+        <div class="timer-label">CURRENT LAP</div>
+      </div>
+
+      <div class="top-actions">
+        <button id="mute-btn" class="btn-hud glass" title="Toggle Engine Audio">
+          🔊 <span>Audio: ON</span>
+        </button>
+        <button id="reset-car-btn" class="btn-hud glass" title="Reset Car to Track (R)">
+          🔄 <span>Reset</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Waypoint Indicator -->
+    <div id="cp-waypoint" class="checkpoint-waypoint glass">
+      <span class="cp-arrow">➔</span>
+      <span id="cp-dist" class="cp-dist">80m • LAUNCH STRIP</span>
+    </div>
+
+    <!-- 3-2-1-GO Countdown Overlay -->
+    <div id="countdown-overlay" class="countdown-overlay">
+      <div id="countdown-text" class="countdown-text">3</div>
+    </div>
+
+    <!-- Split Time Banner (Triggered on Checkpoint Cross) -->
+    <div id="split-notice" class="split-notice glass">
+      <div class="split-title">GATE CLEARED!</div>
+      <div class="split-time">00:14.280</div>
+      <div class="split-sub">SPLIT TIME</div>
+    </div>
+
+    <!-- Drift Score Popup -->
+    <div id="drift-score" class="drift-score-box glass">
+      <span class="drift-label">DRIFT SCORE</span>
+      <span class="drift-val">+240 PTS</span>
+    </div>
+
+    <!-- Minimap Radar (Bottom Left) -->
+    <div class="minimap-box glass">
+      <canvas id="minimap-canvas" width="140" height="140"></canvas>
+    </div>
+
+    <!-- Hypercar Cockpit Gauge Cluster (Bottom Right) -->
+    <div class="cockpit-cluster glass">
+      <canvas id="gauge-canvas" width="300" height="230"></canvas>
+    </div>
+
+    <!-- Controls Guide -->
+    <div class="controls-guide-bar glass">
+      <span><span class="kbd">W</span> Gas</span>
+      <span><span class="kbd">S</span> Reverse</span>
+      <span><span class="kbd">A</span><span class="kbd">D</span> Steer</span>
+      <span><span class="kbd">SPACE</span> Brake</span>
+      <span><span class="kbd">SHIFT</span> Nitro Boost</span>
+      <span><span class="kbd">R</span> Reset</span>
+    </div>
+
+    <!-- Mobile Virtual Touch Controls -->
+    <div class="mobile-touch-rig">
+      <div class="touch-group">
+        <button id="touch-left" class="t-btn">◀</button>
+        <button id="touch-right" class="t-btn">▶</button>
+      </div>
+
+      <div class="touch-group">
+        <button id="touch-nitro" class="t-btn t-nitro">NOS</button>
+        <button id="touch-handbrake" class="t-btn t-brake" style="background: rgba(239, 68, 68, 0.4); border-color: #ef4444;">STOP</button>
+        <button id="touch-brake" class="t-btn" style="font-size: 11px; font-weight: bold;">REV</button>
+        <button id="touch-gas" class="t-btn t-gas">▲</button>
+      </div>
+    </div>
+
+    <!-- Victory Finish Modal -->
+    <div id="victory-modal" class="victory-modal">
+      <div class="victory-card glass">
+        <div class="victory-badge">CIRCUIT COMPLETED</div>
+        <h1 class="victory-title">RACE FINISHED! 🏆</h1>
+
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-item-label">TOTAL TIME</div>
+            <div id="fin-time" class="stat-item-val">01:24.890</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-item-label">TOP SPEED</div>
+            <div id="fin-speed" class="stat-item-val">284 KM/H</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-item-label">DRIFT SCORE</div>
+            <div id="fin-drift" class="stat-item-val">1,420 PTS</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-item-label">PERFORMANCE RANK</div>
+            <div id="fin-rank" class="stat-item-val rank-pill">S-RANK</div>
+          </div>
+        </div>
+
+        <button id="restart-race-btn" class="btn-restart">
+          🏁 RACE AGAIN / NEXT LAP
+        </button>
+      </div>
+    </div>
+
+  </body>
+</html>

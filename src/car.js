@@ -58,6 +58,13 @@ export class Hypercar {
     this.group = new THREE.Group();
     this.scene.add(this.group);
 
+    // Isolated wrapper for authentic chassis pitch & roll dynamics
+    this.carModelWrapper = new THREE.Group();
+    this.group.add(this.carModelWrapper);
+
+    this.isReady = false;
+    this.readyCallbacks = [];
+
     this.setupContactShadow();
     this.setupSkidMarks();
     this.setupTireSmoke();
@@ -65,151 +72,91 @@ export class Hypercar {
     this.setupExhaustFlames();
     this.setupHeadlights();
 
-    // Create a sculpted procedural sports car immediately so it NEVER appears as a flat block
-    this.createSculptedSupercar();
-
     // Load the official high-poly Ferrari 458 Italia with local DRACO decompressor
     this.loadFerrariModel();
   }
 
-  createSculptedSupercar() {
-    this.tempMeshGroup = new THREE.Group();
-
-    const redMat = new THREE.MeshStandardMaterial({
-      color: 0xdc2626, // Rosso Corsa Red
-      roughness: 0.18,
-      metalness: 0.85
-    });
-
-    const carbonMat = new THREE.MeshStandardMaterial({
-      color: 0x18181b,
-      roughness: 0.4,
-      metalness: 0.3
-    });
-
-    const glassMat = new THREE.MeshStandardMaterial({
-      color: 0x0f172a,
-      roughness: 0.05,
-      metalness: 0.2,
-      transparent: true,
-      opacity: 0.8
-    });
-
-    const wheelMat = new THREE.MeshStandardMaterial({
-      color: 0x1c1917,
-      roughness: 0.8
-    });
-
-    const alloyMat = new THREE.MeshStandardMaterial({
-      color: 0xf8fafc,
-      metalness: 0.9,
-      roughness: 0.15
-    });
-
-    // 1. Sleek aerodynamic wedge body
-    const mainBody = new THREE.Mesh(new THREE.BoxGeometry(1.96, 0.38, 4.3), redMat);
-    mainBody.position.y = 0.36;
-    mainBody.castShadow = true;
-    this.tempMeshGroup.add(mainBody);
-
-    // Front Nose Wedge
-    const noseGeo = new THREE.CylinderGeometry(0.1, 1.94, 1.4, 16);
-    noseGeo.rotateX(Math.PI / 2);
-    const nose = new THREE.Mesh(noseGeo, redMat);
-    nose.position.set(0, 0.4, 2.1);
-    nose.scale.set(1, 0.42, 1);
-    this.tempMeshGroup.add(nose);
-
-    // Front Splitter
-    const splitter = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.06, 1.0), carbonMat);
-    splitter.position.set(0, 0.16, 2.38);
-    this.tempMeshGroup.add(splitter);
-
-    // Teardrop Cockpit Canopy
-    const cockpitGeo = new THREE.CylinderGeometry(0.72, 0.96, 2.0, 16);
-    cockpitGeo.rotateX(Math.PI / 2);
-    const cockpit = new THREE.Mesh(cockpitGeo, glassMat);
-    cockpit.position.set(0, 0.78, 0.05);
-    cockpit.scale.set(0.96, 0.5, 1.15);
-    this.tempMeshGroup.add(cockpit);
-
-    // GT Wing
-    const wingPylonL = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.48, 0.3), carbonMat);
-    wingPylonL.position.set(-0.6, 0.82, -2.0);
-    const wingPylonR = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.48, 0.3), carbonMat);
-    wingPylonR.position.set(0.6, 0.82, -2.0);
-    const wingBlade = new THREE.Mesh(new THREE.BoxGeometry(2.15, 0.07, 0.46), carbonMat);
-    wingBlade.position.set(0, 1.05, -2.05);
-    wingBlade.rotation.x = 0.08;
-    this.tempMeshGroup.add(wingPylonL, wingPylonR, wingBlade);
-
-    // Wheels
-    const wGeo = new THREE.CylinderGeometry(0.36, 0.36, 0.28, 16);
-    wGeo.rotateZ(Math.PI / 2);
-    const rGeo = new THREE.CylinderGeometry(0.24, 0.24, 0.29, 12);
-    rGeo.rotateZ(Math.PI / 2);
-
-    const wCoords = [
-      { x: -1.04, y: 0.36, z: 1.35 },
-      { x: 1.04, y: 0.36, z: 1.35 },
-      { x: -1.06, y: 0.38, z: -1.35 },
-      { x: 1.06, y: 0.38, z: -1.35 }
-    ];
-
-    wCoords.forEach((pos) => {
-      const wHub = new THREE.Group();
-      wHub.position.set(pos.x, pos.y, pos.z);
-      const tire = new THREE.Mesh(wGeo, wheelMat);
-      const rim = new THREE.Mesh(rGeo, alloyMat);
-      wHub.add(tire, rim);
-      this.tempMeshGroup.add(wHub);
-    });
-
-    this.group.add(this.tempMeshGroup);
+  onModelReady(cb) {
+    if (this.isReady) {
+      cb();
+    } else {
+      this.readyCallbacks.push(cb);
+    }
   }
 
   loadFerrariModel() {
     const loader = new GLTFLoader();
 
-    // Attach local DRACO decompressor from public/draco
+    // Attach local DRACO decompressor using base-relative path
+    const rawBase = import.meta.env.BASE_URL || './';
+    const cleanBase = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
+    const dracoPath = `${cleanBase}draco/`;
+    const modelPath = `${cleanBase}ferrari.glb`;
+
     const dracoLoader = new DRACOLoader();
-    dracoLoader.setDecoderPath('/draco/');
+    dracoLoader.setDecoderPath(dracoPath);
     loader.setDRACOLoader(dracoLoader);
 
-    // Metallic Rosso Corsa Ferrari Red Paint
+    // Rosso Corsa Ferrari Red Metallic Paint
     const ferrariPaint = new THREE.MeshStandardMaterial({
       color: 0xdc2626,
       metalness: 0.88,
       roughness: 0.16,
-      envMapIntensity: 2.2
+      envMapIntensity: 2.5
     });
 
     const carbonMat = new THREE.MeshStandardMaterial({
-      color: 0x18181b,
-      metalness: 0.4,
-      roughness: 0.35
+      color: 0x141416,
+      metalness: 0.35,
+      roughness: 0.4
     });
 
     const glassMat = new THREE.MeshStandardMaterial({
-      color: 0x0f172a,
-      metalness: 0.2,
-      roughness: 0.05,
+      color: 0x070d18,
+      metalness: 0.25,
+      roughness: 0.04,
       transparent: true,
-      opacity: 0.75
+      opacity: 0.76
     });
 
     const chromeMat = new THREE.MeshStandardMaterial({
       color: 0xf8fafc,
       metalness: 0.95,
-      roughness: 0.1
+      roughness: 0.08
+    });
+
+    const tireRubberMat = new THREE.MeshStandardMaterial({
+      color: 0x18181b,
+      roughness: 0.88,
+      metalness: 0.08
+    });
+
+    const brakeRotorMat = new THREE.MeshStandardMaterial({
+      color: 0x8b95a5,
+      roughness: 0.28,
+      metalness: 0.86
+    });
+
+    const yellowBadgeMat = new THREE.MeshStandardMaterial({
+      color: 0xfacc15,
+      roughness: 0.3,
+      metalness: 0.2
+    });
+
+    const ledHeadlightMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff
+    });
+
+    const shiftLedMat = new THREE.MeshBasicMaterial({
+      color: 0xff1e1e
     });
 
     loader.load(
-      '/ferrari.glb',
+      modelPath,
       (gltf) => {
         const model = gltf.scene;
         model.scale.set(1.0, 1.0, 1.0); // True 1:1 scale (4.52m long, 1.94m wide)
-        model.rotation.y = Math.PI; // Align forward with game world (+Z)
+        model.rotation.y = Math.PI;     // Align forward facing with world +Z
         model.position.set(0, 0.02, 0);
 
         // Traverse and enhance authentic Ferrari materials
@@ -224,10 +171,30 @@ export class Hypercar {
               child.material = ferrariPaint;
             } else if (name === 'glass') {
               child.material = glassMat;
-            } else if (name === 'carbon' || name === 'carbon_fibre_trim' || name === 'carbon fibre') {
+            } else if (name === 'carbon' || name === 'carbon_fibre_trim' || name === 'carbon_fibre') {
               child.material = carbonMat;
-            } else if (name.startsWith('rim_')) {
+            } else if (name.startsWith('rim_') || name === 'chrome' || name === 'metal') {
               child.material = chromeMat;
+            } else if (name === 'lights_red') {
+              this.taillightMesh = child;
+              this.taillightMat = new THREE.MeshStandardMaterial({
+                color: 0x880000,
+                emissive: 0xff0000,
+                emissiveIntensity: 0.8,
+                roughness: 0.2,
+                metalness: 0.1
+              });
+              child.material = this.taillightMat;
+            } else if (name === 'leds' || name === 'lights') {
+              child.material = ledHeadlightMat;
+            } else if (name.startsWith('tire') || name === 'wipers') {
+              child.material = tireRubberMat;
+            } else if (name.startsWith('brake')) {
+              child.material = brakeRotorMat;
+            } else if (name.startsWith('centre') || name === 'yellow_trim') {
+              child.material = yellowBadgeMat;
+            } else if (name === 'steering_red_lights') {
+              child.material = shiftLedMat;
             }
           }
         });
@@ -241,15 +208,15 @@ export class Hypercar {
           if (child.name === 'steering_wheel') this.steeringWheel = child;
         });
 
-        // Remove temporary placeholder mesh cleanly
-        if (this.tempMeshGroup) {
-          this.group.remove(this.tempMeshGroup);
-          this.tempMeshGroup = null;
-        }
-
-        this.group.add(model);
+        this.carModelWrapper.add(model);
         this.ferrariModel = model;
+        this.isReady = true;
+
         console.log('Ferrari 458 Italia 3D model loaded successfully at 1:1 scale!');
+        this.readyCallbacks.forEach(cb => {
+          try { cb(); } catch (e) { console.error(e); }
+        });
+        this.readyCallbacks = [];
       },
       undefined,
       (err) => {
@@ -300,29 +267,11 @@ export class Hypercar {
     this.group.add(this.spotLightR, this.spotTargetR);
     this.spotLightR.target = this.spotTargetR;
 
-    // Front Xenon Projector Halos
-    const headLensGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.05, 16);
-    headLensGeo.rotateX(Math.PI / 2);
-    const headLensMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    const lensL = new THREE.Mesh(headLensGeo, headLensMat);
-    lensL.position.set(-0.68, 0.52, 2.12);
-    const lensR = new THREE.Mesh(headLensGeo, headLensMat);
-    lensR.position.set(0.68, 0.52, 2.12);
-    this.group.add(lensL, lensR);
-
-    // Ferrari 458 Iconic Twin Round Taillights
-    const tailGeo = new THREE.CylinderGeometry(0.14, 0.14, 0.05, 16);
-    tailGeo.rotateX(Math.PI / 2);
-    this.taillightMat = new THREE.MeshBasicMaterial({ color: 0xb91c1c });
-    this.taillightL = new THREE.Mesh(tailGeo, this.taillightMat);
-    this.taillightL.position.set(-0.62, 0.62, -2.18);
-    this.taillightR = new THREE.Mesh(tailGeo, this.taillightMat);
-    this.taillightR.position.set(0.62, 0.62, -2.18);
-    this.group.add(this.taillightL, this.taillightR);
   }
 
   setupExhaustFlames() {
-    const flameGeo = new THREE.ConeGeometry(0.12, 1.4, 12);
+    this.flames = [];
+    const flameGeo = new THREE.ConeGeometry(0.08, 1.3, 12);
     flameGeo.rotateX(-Math.PI / 2);
 
     const flameMat = new THREE.MeshBasicMaterial({
@@ -331,15 +280,15 @@ export class Hypercar {
       opacity: 0.95
     });
 
-    this.flameL = new THREE.Mesh(flameGeo, flameMat);
-    this.flameL.position.set(-0.32, 0.35, -2.5);
-    this.flameL.visible = false;
-
-    this.flameR = new THREE.Mesh(flameGeo, flameMat);
-    this.flameR.position.set(0.32, 0.35, -2.5);
-    this.flameR.visible = false;
-
-    this.group.add(this.flameL, this.flameR);
+    // Authentic Ferrari 458 Triple Central Exhaust pipes
+    const pipeXOffsets = [-0.11, 0.0, 0.11];
+    pipeXOffsets.forEach(x => {
+      const flame = new THREE.Mesh(flameGeo, flameMat);
+      flame.position.set(x, 0.24, -2.28);
+      flame.visible = false;
+      this.group.add(flame);
+      this.flames.push(flame);
+    });
   }
 
   setupSkidMarks() {
@@ -510,13 +459,16 @@ export class Hypercar {
     if (this.isNitro) {
       this.nitroFuel = Math.max(0, this.nitroFuel - dt * 26);
       const flameScale = 1.0 + Math.random() * 0.45;
-      this.flameL.scale.set(flameScale, flameScale, flameScale);
-      this.flameR.scale.set(flameScale, flameScale, flameScale);
-      this.flameL.visible = true;
-      this.flameR.visible = true;
+      if (this.flames) {
+        this.flames.forEach(f => {
+          f.scale.set(flameScale, flameScale, flameScale);
+          f.visible = true;
+        });
+      }
     } else {
-      this.flameL.visible = false;
-      this.flameR.visible = false;
+      if (this.flames) {
+        this.flames.forEach(f => { f.visible = false; });
+      }
       this.nitroFuel = Math.min(100, this.nitroFuel + dt * 8.0);
     }
 
@@ -615,13 +567,12 @@ export class Hypercar {
     // Root group stays strictly level with ground on Y-axis yaw only
     this.group.rotation.set(0, this.heading, 0);
 
-    // Subtle chassis roll applied locally to car body only (prevents road lean)
-    const activeChassis = this.ferrariModel || this.tempMeshGroup;
-    if (activeChassis) {
+    // Subtle chassis roll applied locally to car body wrapper
+    if (this.carModelWrapper) {
       const rollAngle = -(this.lateralSpeed / 22.0) * 0.05;
       const pitchAngle = (accelForce / 50.0) * 0.025;
-      activeChassis.rotation.z = THREE.MathUtils.lerp(activeChassis.rotation.z, rollAngle, dt * 8);
-      activeChassis.rotation.x = THREE.MathUtils.lerp(activeChassis.rotation.x, pitchAngle, dt * 8);
+      this.carModelWrapper.rotation.z = THREE.MathUtils.lerp(this.carModelWrapper.rotation.z, rollAngle, dt * 8);
+      this.carModelWrapper.rotation.x = THREE.MathUtils.lerp(this.carModelWrapper.rotation.x, pitchAngle, dt * 8);
     }
 
     // Contact Shadow follows car
@@ -656,16 +607,14 @@ export class Hypercar {
       this.steeringWheel.rotation.z = -this.steerAngle * 2.5;
     }
 
-    // Taillight dynamic brake flare
+    // Taillight dynamic brake flare (authentic Ferrari lights_red mesh)
     if (this.taillightMat) {
       if (this.isBraking) {
-        this.taillightMat.color.setHex(0xff1111);
-        this.taillightL.scale.set(1.3, 1.3, 1.3);
-        this.taillightR.scale.set(1.3, 1.3, 1.3);
+        this.taillightMat.emissive.setHex(0xff0000);
+        this.taillightMat.emissiveIntensity = THREE.MathUtils.lerp(this.taillightMat.emissiveIntensity, 3.2, dt * 15);
       } else {
-        this.taillightMat.color.setHex(0x881111);
-        this.taillightL.scale.set(1.0, 1.0, 1.0);
-        this.taillightR.scale.set(1.0, 1.0, 1.0);
+        this.taillightMat.emissive.setHex(0x770000);
+        this.taillightMat.emissiveIntensity = THREE.MathUtils.lerp(this.taillightMat.emissiveIntensity, 0.8, dt * 8);
       }
     }
 

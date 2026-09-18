@@ -357,7 +357,7 @@ body, html {
   font-size: 0.72rem;
 }
 
-/* Mobile Virtual Controls */
+/* Mobile Virtual Controls & Responsive Layout */
 .mobile-touch-rig {
   display: none;
   position: absolute;
@@ -366,16 +366,93 @@ body, html {
   right: 20px;
   justify-content: space-between;
   align-items: flex-end;
-  z-index: 25;
+  z-index: 30;
   pointer-events: none;
 }
 
-@media (max-width: 860px) and (pointer: coarse) {
-  .mobile-touch-rig {
-    display: flex;
-  }
+@media (max-width: 900px), (pointer: coarse) {
   .controls-guide-bar {
-    display: none;
+    display: none !important;
+  }
+
+  .mobile-touch-rig {
+    display: flex !important;
+    bottom: 16px;
+    left: 14px;
+    right: 14px;
+  }
+
+  /* Reposition Minimap to top-left on mobile */
+  .minimap-box {
+    bottom: auto !important;
+    top: 72px !important;
+    left: 14px !important;
+    width: 86px !important;
+    height: 86px !important;
+    border-radius: 14px !important;
+    padding: 3px !important;
+  }
+
+  .minimap-box canvas {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  /* Reposition Cockpit gauge to top-right on mobile so bottom is 100% clear */
+  .cockpit-cluster {
+    bottom: auto !important;
+    top: 72px !important;
+    right: 14px !important;
+    width: 135px !important;
+    height: 98px !important;
+    border-radius: 14px !important;
+    padding: 0 !important;
+    transform: scale(0.74) !important;
+    transform-origin: top right !important;
+  }
+
+  /* Compact Top Bar on mobile */
+  .race-top-bar {
+    top: 8px;
+    left: 8px;
+    right: 8px;
+  }
+
+  .game-brand {
+    padding: 6px 12px;
+    gap: 8px;
+  }
+
+  .game-title {
+    font-size: 1.05rem;
+  }
+
+  .checkpoint-badge {
+    font-size: 0.7rem;
+    padding: 3px 6px;
+  }
+
+  .timer-box {
+    padding: 4px 14px;
+  }
+
+  .timer-val {
+    font-size: 1.3rem;
+  }
+
+  .timer-label {
+    font-size: 0.58rem;
+  }
+
+  .btn-hud {
+    padding: 6px 10px;
+    font-size: 0.74rem;
+  }
+
+  .checkpoint-waypoint {
+    top: 56px;
+    padding: 5px 12px;
+    font-size: 0.75rem;
   }
 }
 
@@ -385,42 +462,79 @@ body, html {
   pointer-events: auto;
 }
 
+.touch-left-group {
+  align-items: center;
+  gap: 12px;
+}
+
+.touch-right-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 60px);
+  gap: 10px;
+}
+
 .t-btn {
-  width: 66px;
-  height: 66px;
-  border-radius: 50%;
-  background: rgba(15, 23, 42, 0.88);
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.84);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 2px solid rgba(255, 255, 255, 0.2);
   color: #fff;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 1.35rem;
+  font-size: 1.15rem;
   font-weight: 900;
   display: flex;
   align-items: center;
   justify-content: center;
   touch-action: none;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+  transition: transform 0.1s ease;
 }
 
 .t-btn:active {
-  background: #00f0ff;
-  color: #000;
-  transform: scale(0.95);
+  transform: scale(0.92);
+}
+
+.t-steer {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  font-size: 1.35rem;
+  border-color: rgba(0, 240, 255, 0.45);
+  background: rgba(8, 14, 28, 0.88);
 }
 
 .t-gas {
   border-color: #22c55e;
-  background: rgba(34, 197, 94, 0.25);
+  background: rgba(34, 197, 94, 0.3);
+  color: #86efac;
+  font-size: 1.45rem;
+}
+
+.t-rev {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.25);
+  color: #fcd34d;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
 }
 
 .t-brake {
   border-color: #ef4444;
-  background: rgba(239, 68, 68, 0.25);
+  background: rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
 }
 
 .t-nitro {
   border-color: #00f0ff;
-  background: rgba(0, 240, 255, 0.3);
-  font-size: 0.88rem;
+  background: rgba(0, 240, 255, 0.32);
+  color: #67e8f9;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
 }
 
 /* Victory Modal */

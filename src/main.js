@@ -42,9 +42,14 @@ class ApexRacingGame {
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    
+    // Performance optimization for mobile devices
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || ('ontouchstart' in window);
+    this.isMobile = isMobile;
+    this.renderer.setPixelRatio(isMobile ? Math.min(window.devicePixelRatio, 1.25) : Math.min(window.devicePixelRatio, 2));
+
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFShadowMap;
+    this.renderer.shadowMap.type = isMobile ? THREE.BasicShadowMap : THREE.PCFShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.3;
     this.container.appendChild(this.renderer.domElement);
@@ -123,9 +128,13 @@ class ApexRacingGame {
 
   startRaceSequence() {
     this.isCountingDown = true;
-    this.hud.startCountdown(() => {
-      this.isCountingDown = false;
-      this.raceStartTime = performance.now();
+    this.hud.showPreparingMessage();
+
+    this.car.onModelReady(() => {
+      this.hud.startCountdown(() => {
+        this.isCountingDown = false;
+        this.raceStartTime = performance.now();
+      });
     });
   }
 
@@ -166,18 +175,21 @@ class ApexRacingGame {
       const el = document.getElementById(btnId);
       if (!el) return;
       const start = (e) => {
-        e.preventDefault();
+        if (e.cancelable) e.preventDefault();
         audio.ensureContext();
         if (!this.isCountingDown) this.car.inputs[key] = true;
       };
       const end = (e) => {
-        e.preventDefault();
+        if (e.cancelable) e.preventDefault();
         this.car.inputs[key] = false;
       };
-      el.addEventListener('touchstart', start);
-      el.addEventListener('touchend', end);
-      el.addEventListener('mousedown', start);
-      el.addEventListener('mouseup', end);
+      el.addEventListener('touchstart', start, { passive: false });
+      el.addEventListener('touchend', end, { passive: false });
+      el.addEventListener('touchcancel', end, { passive: false });
+      el.addEventListener('pointerdown', start);
+      el.addEventListener('pointerup', end);
+      el.addEventListener('pointercancel', end);
+      el.addEventListener('pointerleave', end);
     };
 
     bindTouch('touch-gas', 'forward');
@@ -351,7 +363,7 @@ class ApexRacingGame {
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(this.isMobile ? Math.min(window.devicePixelRatio, 1.25) : Math.min(window.devicePixelRatio, 2));
   }
 
   animate() {

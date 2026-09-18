@@ -19,8 +19,9 @@ export class Track {
       new THREE.Vector3(150, 0, 195),   // Coastal Beach Curve
       new THREE.Vector3(190, 0, 80),    // Approach to Cyber Hyper-Tunnel
       new THREE.Vector3(155, 0, -35),   // Tunnel Exit
-      new THREE.Vector3(95, 0, -45),    // Stadium Approach S-Curve
-      new THREE.Vector3(35, 0, 25)      // Stadium Entry Straight
+      new THREE.Vector3(105, 0, -30),   // Flowing Stadium Approach
+      new THREE.Vector3(55, 0, 5),      // Stadium Turn Arc
+      new THREE.Vector3(20, 0, 40)      // Stadium Entry Straight
     ];
 
     this.curve = new THREE.CatmullRomCurve3(this.trackPoints, true);
@@ -125,9 +126,19 @@ export class Track {
     this.buildCheckpointGates();
   }
 
+  getTangentAt(idx) {
+    const nextIdx = (idx + 1) % this.pointsCount;
+    const prevIdx = (idx - 1 + this.pointsCount) % this.pointsCount;
+    return this.roadPoints[nextIdx].clone().sub(this.roadPoints[prevIdx]).normalize();
+  }
+
+  getNormalAt(idx) {
+    const tangent = this.getTangentAt(idx);
+    return new THREE.Vector3(-tangent.z, 0, tangent.x).normalize();
+  }
+
   getHeadingAt(idx) {
-    const t = (idx % this.pointsCount) / this.pointsCount;
-    const tangent = this.curve.getTangent(t).normalize();
+    const tangent = this.getTangentAt(idx);
     return Math.atan2(tangent.x, tangent.z);
   }
 
@@ -206,8 +217,7 @@ export class Track {
     for (let i = 0; i <= pointsCount; i++) {
       const idx = i % pointsCount;
       const pt = roadPoints[idx];
-      const tangent = this.curve.getTangent(idx / pointsCount);
-      const normal = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize();
+      const normal = this.getNormalAt(idx);
 
       const leftPt = pt.clone().addScaledVector(normal, -this.roadHalfWidth);
       const rightPt = pt.clone().addScaledVector(normal, this.roadHalfWidth);
@@ -358,8 +368,7 @@ export class Track {
 
     for (let i = 0; i < points.length; i++) {
       const pt = points[i];
-      const tangent = this.curve.getTangent(i / points.length);
-      const normal = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize();
+      const normal = this.getNormalAt(i);
 
       const pL = pt.clone().addScaledVector(normal, -offsetDist);
       const pR = pt.clone().addScaledVector(normal, offsetDist);
@@ -870,7 +879,7 @@ export class Track {
 
     archIndices.forEach((idx, i) => {
       const pt = this.roadPoints[idx];
-      const tangent = this.curve.getTangent(idx / this.pointsCount).normalize();
+      const tangent = this.getTangentAt(idx);
 
       dummy.position.set(pt.x, 7.5, pt.z);
       dummy.lookAt(pt.x + tangent.x, 7.5, pt.z + tangent.z);
@@ -1058,9 +1067,8 @@ export class Track {
       }
     }
 
-    const t = closestIdx / this.pointsCount;
-    const tangent = this.curve.getTangent(t).normalize();
-    const normal = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize();
+    const tangent = this.getTangentAt(closestIdx);
+    const normal = this.getNormalAt(closestIdx);
 
     const toCar = new THREE.Vector3(carPos.x - closestPt.x, 0, carPos.z - closestPt.z);
     const lateralDist = toCar.dot(normal);

@@ -35,12 +35,30 @@ export class RacingHUD {
     canvas.style.height = `${cssHeight}px`;
   }
 
+  showPreparingMessage() {
+    if (this.countdownOverlay && this.countdownText) {
+      this.countdownOverlay.classList.add('active');
+      this.countdownText.textContent = 'READYING HYPERCAR';
+      this.countdownText.style.fontSize = '2.2rem';
+      this.countdownText.style.letterSpacing = '4px';
+      this.countdownText.style.color = '#00f0ff';
+    }
+  }
+
+  hidePreparingMessage() {
+    if (this.countdownText) {
+      this.countdownText.style.fontSize = '';
+      this.countdownText.style.letterSpacing = '';
+    }
+  }
+
   startCountdown(onComplete) {
     if (!this.countdownOverlay || !this.countdownText) {
       if (onComplete) onComplete();
       return;
     }
 
+    this.hidePreparingMessage();
     this.countdownOverlay.classList.add('active');
     const steps = ['3', '2', '1', 'GO!'];
     let stepIdx = 0;

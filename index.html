@@ -81,16 +81,16 @@
 
     <!-- Mobile Virtual Touch Controls -->
     <div class="mobile-touch-rig">
-      <div class="touch-group">
-        <button id="touch-left" class="t-btn">◀</button>
-        <button id="touch-right" class="t-btn">▶</button>
+      <div class="touch-group touch-left-group">
+        <button id="touch-left" class="t-btn t-steer" aria-label="Steer Left">◀</button>
+        <button id="touch-right" class="t-btn t-steer" aria-label="Steer Right">▶</button>
       </div>
 
-      <div class="touch-group">
-        <button id="touch-nitro" class="t-btn t-nitro">NOS</button>
-        <button id="touch-handbrake" class="t-btn t-brake" style="background: rgba(239, 68, 68, 0.4); border-color: #ef4444;">STOP</button>
-        <button id="touch-brake" class="t-btn" style="font-size: 11px; font-weight: bold;">REV</button>
-        <button id="touch-gas" class="t-btn t-gas">▲</button>
+      <div class="touch-group touch-right-grid">
+        <button id="touch-handbrake" class="t-btn t-brake" aria-label="Handbrake">STOP</button>
+        <button id="touch-nitro" class="t-btn t-nitro" aria-label="Nitrous Boost">NOS</button>
+        <button id="touch-brake" class="t-btn t-rev" aria-label="Reverse">REV</button>
+        <button id="touch-gas" class="t-btn t-gas" aria-label="Gas Accelerate">▲</button>
       </div>
     </div>
 

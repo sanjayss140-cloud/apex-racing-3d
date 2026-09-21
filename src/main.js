@@ -310,9 +310,19 @@ class ApexRacingGame {
     window.addEventListener('pointerdown', () => audio.ensureContext(), { once: true });
   }
 
+  updateShowroomActiveCar(carIndex) {
+    const cfg = CAR_CONFIGS[carIndex] || CAR_CONFIGS[0];
+    const nameEl = document.getElementById('showroom-car-name');
+    const descEl = document.getElementById('showroom-car-desc');
+    if (nameEl) nameEl.textContent = cfg.name.toUpperCase();
+    if (descEl) descEl.textContent = cfg.description.toUpperCase();
+  }
+
   openCarShowroom(confirmLabel = '🚀 START RACE') {
     this.inShowroom = true;
     this.showroomAngle = 0;
+    document.body.classList.add('in-showroom');
+    this.updateShowroomActiveCar(this.selectedCarIndex);
     const garageModal = document.getElementById('garage-selection-modal');
     const confirmBtn = document.getElementById('btn-confirm-garage');
     if (confirmBtn) confirmBtn.textContent = confirmLabel;
@@ -350,6 +360,7 @@ class ApexRacingGame {
     if (btnConfirmGarage) {
       btnConfirmGarage.addEventListener('click', () => {
         document.getElementById('garage-selection-modal').classList.remove('active');
+        document.body.classList.remove('in-showroom');
         this.inShowroom = false;
         if (this.gameMode === 'solo') {
           this.soloTourStage = 0;
@@ -366,6 +377,7 @@ class ApexRacingGame {
     if (btnBackGarage) {
       btnBackGarage.addEventListener('click', () => {
         document.getElementById('garage-selection-modal').classList.remove('active');
+        document.body.classList.remove('in-showroom');
         this.inShowroom = false;
         document.getElementById('mode-selection-modal').classList.add('active');
       });
@@ -374,6 +386,7 @@ class ApexRacingGame {
     // Top Bar Mode & Lobby Buttons
     document.getElementById('open-mode-btn').addEventListener('click', () => {
       this.inShowroom = false;
+      document.body.classList.remove('in-showroom');
       document.getElementById('garage-selection-modal').classList.remove('active');
       document.getElementById('lobby-modal').classList.remove('active');
       document.getElementById('mode-selection-modal').classList.add('active');
@@ -381,6 +394,7 @@ class ApexRacingGame {
 
     document.getElementById('open-lobby-btn').addEventListener('click', () => {
       this.inShowroom = false;
+      document.body.classList.remove('in-showroom');
       document.getElementById('garage-selection-modal').classList.remove('active');
       document.getElementById('mode-selection-modal').classList.remove('active');
       document.getElementById('lobby-modal').classList.add('active');
@@ -441,6 +455,7 @@ class ApexRacingGame {
         const carId = parseInt(card.dataset.car, 10);
         this.selectedCarIndex = carId;
         this.car.setCarConfig(carId);
+        this.updateShowroomActiveCar(carId);
 
         // Synchronize all car cards matching this carId
         document.querySelectorAll('.car-card').forEach(c => {
@@ -762,16 +777,16 @@ class ApexRacingGame {
 
   updateCamera(dt) {
     if (this.inShowroom) {
-      this.showroomAngle = (this.showroomAngle || 0) + dt * 0.55;
-      const dist = 6.4;
-      const height = 1.9;
+      this.showroomAngle = (this.showroomAngle || 0) + dt * 0.45;
+      const dist = 5.2;
+      const height = 1.35;
       const cx = this.car.position.x + Math.sin(this.showroomAngle) * dist;
       const cz = this.car.position.z + Math.cos(this.showroomAngle) * dist;
       const cy = this.car.position.y + height;
       this.camera.position.set(cx, cy, cz);
-      this.cameraTarget.copy(this.car.position).add(new THREE.Vector3(0, 0.7, 0));
+      this.cameraTarget.copy(this.car.position).add(new THREE.Vector3(0, 0.42, 0));
       this.camera.lookAt(this.cameraTarget);
-      this.camera.fov = 50;
+      this.camera.fov = 46;
       this.camera.updateProjectionMatrix();
       return;
     }
@@ -828,10 +843,24 @@ class ApexRacingGame {
       this.hud.updateTimer(this.elapsedTime);
     }
 
-    // 2. Car Dynamics with Smooth Non-Jitter Lane Clamping (500+ KM/H)
-    this.car.update(dt, this.track);
-    if (this.car.speed > this.topSpeedReached) {
-      this.topSpeedReached = this.car.speed;
+    // 2. Car Dynamics: STRICT FREEZE during countdown, showroom, or before race starts!
+    if (this.isCountingDown || this.inShowroom || !this.raceStartTime) {
+      this.car.velocity.set(0, 0, 0);
+      this.car.speed = 0;
+      this.car.forwardSpeed = 0;
+      this.car.lateralSpeed = 0;
+      if (this.car.inputs.forward && this.isCountingDown) {
+        this.car.rpm = THREE.MathUtils.lerp(this.car.rpm, 5500, dt * 8);
+        audio.updateEngine(this.car.rpm, 0, false);
+      } else {
+        this.car.rpm = THREE.MathUtils.lerp(this.car.rpm, 1200, dt * 6);
+        audio.updateEngine(this.car.rpm, 0, false);
+      }
+    } else {
+      this.car.update(dt, this.track);
+      if (this.car.speed > this.topSpeedReached) {
+        this.topSpeedReached = this.car.speed;
+      }
     }
 
     // Broadcast 20Hz Telemetry

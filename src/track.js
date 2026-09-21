@@ -815,7 +815,7 @@ export class Track {
     // 2. The Great Pyramid of Khufu (Towering 105m Stepped Pyramid with Golden Capstone)
     // Multi-tiered stepped construction for authentic ancient Egyptian masonry!
     const pyr1Group = new THREE.Group();
-    pyr1Group.position.set(-440, 0, -45);
+    pyr1Group.position.set(-480, 0, -45);
     pyr1Group.rotation.y = Math.PI / 4;
 
     const tiers = 5;
@@ -843,18 +843,18 @@ export class Track {
 
     // 3. Pyramid of Khafre (90m tall with surviving polished casing capstone)
     const pyr2 = new THREE.Mesh(new THREE.ConeGeometry(72, 90, 4), sandstoneMat);
-    pyr2.position.set(-420, 45, -180);
+    pyr2.position.set(-470, 45, -195);
     pyr2.rotation.y = Math.PI / 4;
     pyr2.castShadow = true;
     pyr2.receiveShadow = true;
     const cap2 = new THREE.Mesh(new THREE.ConeGeometry(22, 28, 4), goldMat);
-    cap2.position.set(-420, 76, -180);
+    cap2.position.set(-470, 76, -195);
     cap2.rotation.y = Math.PI / 4;
     this.addToTrack(pyr2, cap2);
 
     // 4. Pyramid of Menkaure (60m tall)
     const pyr3 = new THREE.Mesh(new THREE.ConeGeometry(50, 60, 4), sandstoneMat);
-    pyr3.position.set(-395, 30, 90);
+    pyr3.position.set(-470, 30, 90);
     pyr3.rotation.y = Math.PI / 4;
     pyr3.castShadow = true;
     pyr3.receiveShadow = true;
@@ -1031,10 +1031,10 @@ export class Track {
       this.addToTrack(cavea);
     }
 
-    // 2. Arch of Constantine (Grand Roman Triumphal Monument - 36M Clear Road Span)
+    // 2. Arch of Constantine (Grand Roman Triumphal Monument standing proudly in the Roman Park)
     const archGroup = new THREE.Group();
-    archGroup.position.set(-135, 0, 245);
-    archGroup.rotation.y = -Math.PI * 0.25;
+    archGroup.position.set(-150, 0, 285);
+    archGroup.rotation.y = Math.PI * 0.1;
 
     const archPillarL = new THREE.Mesh(new THREE.BoxGeometry(6.0, 22, 7.0), travertineMat);
     archPillarL.position.set(-18.0, 11, 0);
@@ -1058,8 +1058,8 @@ export class Track {
 
     // 3. Colonnade of the Roman Temple of Saturn (6 Fluted Columns with Pediment)
     const templeGroup = new THREE.Group();
-    templeGroup.position.set(-85, 0, 260);
-    templeGroup.rotation.y = -Math.PI * 0.15;
+    templeGroup.position.set(-85, 0, 290);
+    templeGroup.rotation.y = 0;
 
     const templePodium = new THREE.Mesh(new THREE.BoxGeometry(28, 3.5, 12), travertineMat);
     templePodium.position.y = 1.75;

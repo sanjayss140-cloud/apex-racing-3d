@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>APEX RUSH 3D — 500 KM/H Multiplayer Hypercar Circuit</title>
-    <script type="module" crossorigin src="./assets/index-DLcsfOe6.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-B5ZHccVk.css">
+    <script type="module" crossorigin src="./assets/index-DGXh_8LE.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-Cn2TZSYl.css">
   </head>
   <body>
     <!-- WebGL Canvas Container -->
@@ -154,16 +154,13 @@
          BANNER 2: DEDICATED VISUAL CAR SELECTION SHOWROOM
          ======================================================== -->
     <div id="garage-selection-modal" class="garage-selection-modal">
-      <div class="garage-card glass">
-        <div class="lobby-header">
-          <h1 class="lobby-title">SELECT YOUR <span>HYPERCAR</span></h1>
-          <p class="lobby-subtitle">All cars have equal 500 KM/H speed & handling</p>
-        </div>
+      <div class="showroom-top-hud glass">
+        <div class="showroom-title">SELECT YOUR <span>HYPERCAR</span></div>
+        <div id="showroom-car-name" class="showroom-car-name">BUGATTI TOURBILLON BOLIDE</div>
+        <div id="showroom-car-desc" class="showroom-car-desc">500 KM/H • ICE METALLIC SKY BLUE • LE MANS FIN</div>
+      </div>
 
-        <div class="showroom-notice">
-          <span>✨ 3D SHOWROOM ACTIVE: Inspect & rotate your car in real-time</span>
-        </div>
-
+      <div class="showroom-bottom-dock glass">
         <!-- 6 Visual Hypercar Cards -->
         <div class="car-grid" id="showroom-car-grid">
           <div class="car-card active" data-car="0">
@@ -210,7 +207,7 @@
           </div>
         </div>
 
-        <div class="garage-action-row" style="margin-top: 16px; display: flex; gap: 12px;">
+        <div class="garage-action-row" style="margin-top: 12px; display: flex; gap: 12px;">
           <button id="btn-confirm-garage" class="btn-start-race" style="flex: 2;">
             🚀 START RACE
           </button>

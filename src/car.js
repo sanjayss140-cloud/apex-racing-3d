@@ -1,7 +1,6 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { audio } from './audio.js';
+import { buildProceduralHypercar } from './hypercarBuilder.js';
 
 export const CAR_CONFIGS = [
   {
@@ -90,45 +89,6 @@ export const CAR_CONFIGS = [
   }
 ];
 
-// Shared Cache for Base 3D Model
-let cachedGltfScene = null;
-let gltfLoadingPromise = null;
-
-function loadBaseCarModel() {
-  if (cachedGltfScene) return Promise.resolve(cachedGltfScene);
-  if (gltfLoadingPromise) return gltfLoadingPromise;
-
-  if (typeof window === 'undefined') {
-    return Promise.reject(new Error('Headless environment'));
-  }
-
-  const rawBase = (typeof import.meta !== 'undefined' && import.meta.env?.BASE_URL) ? import.meta.env.BASE_URL : './';
-  const cleanBase = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
-  const dracoPath = `${cleanBase}draco/`;
-  const modelPath = `${cleanBase}ferrari.glb`;
-
-  const loader = new GLTFLoader();
-  const dracoLoader = new DRACOLoader();
-  dracoLoader.setDecoderPath(dracoPath);
-  loader.setDRACOLoader(dracoLoader);
-
-  gltfLoadingPromise = new Promise((resolve, reject) => {
-    loader.load(
-      modelPath,
-      (gltf) => {
-        cachedGltfScene = gltf.scene;
-        resolve(cachedGltfScene);
-      },
-      undefined,
-      (err) => {
-        console.warn('Failed to load ferrari.glb, falling back to procedural hypercar chassis:', err);
-        reject(err);
-      }
-    );
-  });
-
-  return gltfLoadingPromise;
-}
 
 export class Hypercar {
   constructor(scene) {
@@ -213,374 +173,35 @@ export class Hypercar {
   }
 
   initModel() {
-    loadBaseCarModel()
-      .then((baseScene) => {
-        this.buildFromRealisticMesh(baseScene);
-        this.isReady = true;
-        this.readyCallbacks.forEach(cb => cb());
-        this.readyCallbacks = [];
-      })
-      .catch(() => {
-        // Safe procedural fallback if in node/test environment
-        this.buildProceduralFallback();
-        this.isReady = true;
-        this.readyCallbacks.forEach(cb => cb());
-        this.readyCallbacks = [];
-      });
+    this.rebuildHypercarMesh();
   }
 
-  buildFromRealisticMesh(baseScene) {
-    if (this.baseModel) {
-      this.carModelWrapper.remove(this.baseModel);
+  rebuildHypercarMesh() {
+    if (this.currentCarMeshGroup) {
+      this.carModelWrapper.remove(this.currentCarMeshGroup);
     }
-
-    const model = baseScene.clone(true);
-    model.scale.set(1.0, 1.0, 1.0);
-    model.rotation.y = Math.PI;
-    model.position.set(0, 0.02, 0);
-
-    this.bodyMeshes = [];
-    this.wheelFL = null;
-    this.wheelFR = null;
-    this.wheelRL = null;
-    this.wheelRR = null;
-    this.steeringWheel = null;
-
     const cfg = CAR_CONFIGS[this.carIndex] || CAR_CONFIGS[0];
+    const built = buildProceduralHypercar(cfg);
+    this.currentCarMeshGroup = built.group;
+    this.wheelFL = built.wheelFL;
+    this.wheelFR = built.wheelFR;
+    this.wheelRL = built.wheelRL;
+    this.wheelRR = built.wheelRR;
+    this.steerFL = built.steerFL;
+    this.steerFR = built.steerFR;
+    this.flames = built.flames;
+    this.taillightMat = built.taillightMat;
+    this.bodyMeshes = built.bodyMeshes;
 
-    const carPaintMat = new THREE.MeshStandardMaterial({
-      color: cfg.paintColor,
-      metalness: cfg.metalness,
-      roughness: cfg.roughness,
-      envMapIntensity: 2.5
-    });
-
-    const carbonMat = new THREE.MeshStandardMaterial({
-      color: 0x141416,
-      metalness: 0.35,
-      roughness: 0.4
-    });
-
-    const glassMat = new THREE.MeshStandardMaterial({
-      color: 0x070d18,
-      metalness: 0.25,
-      roughness: 0.04,
-      transparent: true,
-      opacity: 0.76
-    });
-
-    const chromeMat = new THREE.MeshStandardMaterial({
-      color: 0xf8fafc,
-      metalness: 0.95,
-      roughness: 0.08
-    });
-
-    const tireRubberMat = new THREE.MeshStandardMaterial({
-      color: 0x18181b,
-      roughness: 0.88,
-      metalness: 0.08
-    });
-
-    const brakeRotorMat = new THREE.MeshStandardMaterial({
-      color: 0x8b95a5,
-      roughness: 0.28,
-      metalness: 0.86
-    });
-
-    this.taillightMat = new THREE.MeshStandardMaterial({
-      color: 0x880000,
-      emissive: 0xff0000,
-      emissiveIntensity: 0.85,
-      roughness: 0.2,
-      metalness: 0.1
-    });
-
-    const ledHeadlightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-
-    model.traverse((child) => {
-      if (child.isMesh) {
-        child.castShadow = true;
-        child.receiveShadow = false;
-        const name = child.name.toLowerCase();
-
-        if (name === 'body') {
-          child.material = carPaintMat;
-          this.bodyMeshes.push(child);
-        } else if (name === 'glass') {
-          child.material = glassMat;
-        } else if (name.includes('carbon')) {
-          child.material = carbonMat;
-        } else if (name.startsWith('rim_') || name === 'chrome' || name === 'metal') {
-          child.material = chromeMat;
-        } else if (name === 'lights_red') {
-          child.material = this.taillightMat;
-        } else if (name === 'leds' || name === 'lights') {
-          child.material = ledHeadlightMat;
-        } else if (name.startsWith('tire') || name === 'wipers') {
-          child.material = tireRubberMat;
-        } else if (name.startsWith('brake')) {
-          child.material = brakeRotorMat;
-        }
-      }
-    });
-
-    model.traverse((child) => {
-      if (child.name === 'wheel_fl') this.wheelFL = child;
-      if (child.name === 'wheel_fr') this.wheelFR = child;
-      if (child.name === 'wheel_rl') this.wheelRL = child;
-      if (child.name === 'wheel_rr') this.wheelRR = child;
-      if (child.name === 'steering_wheel') this.steeringWheel = child;
-    });
-
-    this.carModelWrapper.add(model);
-    this.baseModel = model;
-
-    this.rebuildAeroElements(cfg);
-  }
-
-  buildProceduralFallback() {
-    // High-level fallback for headless tests
-    const dummyWheel = () => new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.3, 16));
-    this.wheelFL = dummyWheel();
-    this.wheelFR = dummyWheel();
-    this.wheelRL = dummyWheel();
-    this.wheelRR = dummyWheel();
-    const cfg = CAR_CONFIGS[this.carIndex] || CAR_CONFIGS[0];
-    this.rebuildAeroElements(cfg);
+    this.carModelWrapper.add(this.currentCarMeshGroup);
+    this.isReady = true;
+    this.readyCallbacks.forEach(cb => cb());
+    this.readyCallbacks = [];
   }
 
   setCarConfig(index) {
     this.carIndex = Math.max(0, Math.min(index, CAR_CONFIGS.length - 1));
-    const cfg = CAR_CONFIGS[this.carIndex];
-
-    if (this.bodyMeshes.length > 0) {
-      this.bodyMeshes.forEach(mesh => {
-        if (mesh.material) {
-          mesh.material.color.setHex(cfg.paintColor);
-          mesh.material.roughness = cfg.roughness;
-          mesh.material.metalness = cfg.metalness;
-          mesh.material.needsUpdate = true;
-        }
-      });
-    }
-
-    this.rebuildAeroElements(cfg);
-  }
-
-  rebuildAeroElements(cfg) {
-    while (this.aeroGroup.children.length > 0) {
-      this.aeroGroup.remove(this.aeroGroup.children[0]);
-    }
-    this.flames = [];
-
-    const carbonMat = new THREE.MeshStandardMaterial({
-      color: 0x111114,
-      roughness: 0.32,
-      metalness: 0.45
-    });
-
-    const paintMat = new THREE.MeshStandardMaterial({
-      color: cfg.paintColor,
-      roughness: cfg.roughness,
-      metalness: cfg.metalness,
-      envMapIntensity: 2.2
-    });
-
-    const accentMat = new THREE.MeshStandardMaterial({
-      color: cfg.accentColor,
-      roughness: 0.22,
-      metalness: 0.85
-    });
-
-    const goldMat = new THREE.MeshStandardMaterial({
-      color: 0xfacc15,
-      roughness: 0.18,
-      metalness: 0.90
-    });
-
-    const titaniumMat = new THREE.MeshStandardMaterial({
-      color: 0x64748b,
-      metalness: 0.94,
-      roughness: 0.16
-    });
-
-    const ledCyan = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
-    const ledRed = new THREE.MeshBasicMaterial({ color: 0xff1744 });
-    const flameColorHex = cfg.flameColor || 0x00f0ff;
-    const flameMat = new THREE.MeshBasicMaterial({ color: flameColorHex, transparent: true, opacity: 0.95 });
-
-    const addFlame = (x, y, z, baseScale = 1.0, rotX = -Math.PI / 2) => {
-      const flameGeo = new THREE.ConeGeometry(0.09 * baseScale, 1.45 * baseScale, 12);
-      flameGeo.rotateX(rotX);
-      const flame = new THREE.Mesh(flameGeo, flameMat);
-      flame.position.set(x, y, z);
-      flame.visible = false;
-      flame.baseScale = baseScale;
-      this.aeroGroup.add(flame);
-      this.flames.push(flame);
-    };
-
-    // 0. Bugatti Bolide: Curved Le Mans Wing, Dorsal Fin & Quad Diffuser Exhausts
-    if (cfg.type === 'tourbillon' || cfg.id === 0) {
-      const wing = new THREE.Mesh(new THREE.BoxGeometry(2.15, 0.05, 0.42), carbonMat);
-      wing.position.set(0, 1.08, -2.05);
-      [-0.48, 0.48].forEach(x => {
-        const pylon = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.38, 0.20), carbonMat);
-        pylon.position.set(x, 0.90, -2.04);
-        pylon.rotation.x = -0.22;
-        this.aeroGroup.add(pylon);
-      });
-      [-1.07, 1.07].forEach(x => {
-        const ep = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.28, 0.48), carbonMat);
-        ep.position.set(x, 1.08, -2.05);
-        const epLed = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.28, 0.04), ledCyan);
-        epLed.position.set(x, 1.08, -2.28);
-        this.aeroGroup.add(ep, epLed);
-      });
-
-      const fin = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.32, 2.3), carbonMat);
-      fin.position.set(0, 0.95, -0.90);
-      const finBorder = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.03, 2.3), ledCyan);
-      finBorder.position.set(0, 1.11, -0.90);
-      this.aeroGroup.add(wing, fin, finBorder);
-
-      [-0.24, -0.08, 0.08, 0.24].forEach(x => {
-        const pipe = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.06, 0.16), titaniumMat);
-        pipe.position.set(x, 0.38, -2.28);
-        this.aeroGroup.add(pipe);
-        addFlame(x, 0.38, -2.32, 0.9);
-      });
-    }
-    // 1. Pagani Huayra BC: Swan-Neck Wing, Leaf Mirrors & High Quad Rocket Cluster
-    else if (cfg.type === 'huayra_bc' || cfg.id === 1) {
-      const wing = new THREE.Mesh(new THREE.BoxGeometry(2.05, 0.05, 0.38), carbonMat);
-      wing.position.set(0, 1.05, -2.02);
-      [-0.42, 0.42].forEach(x => {
-        const pylon = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.38, 0.18), carbonMat);
-        pylon.position.set(x, 0.86, -2.00);
-        pylon.rotation.x = -0.20;
-        this.aeroGroup.add(pylon);
-      });
-      this.aeroGroup.add(wing);
-
-      // High Leaf-Stalk Mirrors
-      [-1, 1].forEach(side => {
-        const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.02, 0.35, 8), carbonMat);
-        stalk.position.set(side * 0.88, 0.65, 0.82);
-        stalk.rotation.z = side * 0.45;
-        const housing = new THREE.Mesh(new THREE.ConeGeometry(0.065, 0.22, 8), carbonMat);
-        housing.position.set(side * 1.02, 0.78, 0.78);
-        housing.rotation.x = Math.PI / 2;
-        this.aeroGroup.add(stalk, housing);
-      });
-
-      // Gold Heat Shield & Quad Rocket Exhausts
-      const shield = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.03, 10, 24), goldMat);
-      shield.position.set(0, 0.62, -2.25);
-      this.aeroGroup.add(shield);
-      [[-0.05, 0.67], [0.05, 0.67], [-0.05, 0.57], [0.05, 0.57]].forEach(([x, y]) => {
-        const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.042, 0.16, 12), titaniumMat);
-        pipe.rotation.x = Math.PI / 2;
-        pipe.position.set(x, y, -2.26);
-        this.aeroGroup.add(pipe);
-        addFlame(x, y, -2.30, 0.85);
-      });
-    }
-    // 2. Apollo IE: Trident Batwing, Canards & Triple Inverted Exhaust
-    else if (cfg.type === 'apollo_ie' || cfg.id === 2) {
-      const batwing = new THREE.Mesh(new THREE.BoxGeometry(2.20, 0.06, 0.46), carbonMat);
-      batwing.position.set(0, 1.12, -2.08);
-      const fin = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.40, 1.5), accentMat);
-      fin.position.set(0, 1.02, -1.35);
-      this.aeroGroup.add(batwing, fin);
-
-      const pipes = [{ x: 0, y: 0.56 }, { x: -0.09, y: 0.46 }, { x: 0.09, y: 0.46 }];
-      pipes.forEach(pos => {
-        const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.18, 12), titaniumMat);
-        pipe.rotation.x = Math.PI / 2;
-        pipe.position.set(pos.x, pos.y, -2.26);
-        this.aeroGroup.add(pipe);
-        addFlame(pos.x, pos.y, -2.30, 0.95);
-      });
-    }
-    // 3. Jesko Absolut: Low-Drag Twin Apex Fins & 0.95m Longtail (NO WING!)
-    else if (cfg.type === 'jesko' || cfg.id === 3) {
-      [-0.70, 0.70].forEach(x => {
-        const fin = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.40, 0.80), paintMat);
-        fin.position.set(x, 0.96, -1.82);
-        const finEdge = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.04, 0.80), accentMat);
-        finEdge.position.set(x, 1.16, -1.82);
-        this.aeroGroup.add(fin, finEdge);
-      });
-      const longtail = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.10, 0.92), carbonMat);
-      longtail.position.set(0, 0.48, -2.45);
-      this.aeroGroup.add(longtail);
-
-      const jetPipe = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.24, 16), titaniumMat);
-      jetPipe.scale.set(1.4, 1.0, 0.8);
-      jetPipe.rotation.x = Math.PI / 2;
-      jetPipe.position.set(0, 0.42, -2.54);
-      this.aeroGroup.add(jetPipe);
-      addFlame(0, 0.42, -2.58, 1.85);
-    }
-    // 4. McLaren Solus GT: Roof Snorkel & Twin-Tier GT3 Wing
-    else if (cfg.type === 'mclaren_solus' || cfg.id === 4) {
-      const snorkel = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.26, 0.68), carbonMat);
-      snorkel.position.set(0, 1.20, -0.15);
-      const wing1 = new THREE.Mesh(new THREE.BoxGeometry(2.15, 0.05, 0.42), carbonMat);
-      wing1.position.set(0, 1.15, -2.08);
-      const wing2 = new THREE.Mesh(new THREE.BoxGeometry(2.00, 0.035, 0.26), carbonMat);
-      wing2.position.set(0, 1.02, -1.96);
-      this.aeroGroup.add(snorkel, wing1, wing2);
-
-      [-0.18, 0.18].forEach(x => {
-        const topPipe = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.18, 12), titaniumMat);
-        topPipe.rotation.x = Math.PI / 3;
-        topPipe.position.set(x, 0.76, -1.65);
-        this.aeroGroup.add(topPipe);
-        addFlame(x, 0.76, -1.72, 1.05, -Math.PI / 3);
-      });
-    }
-    // 5. Ferrari Daytona SP3: 5 Rear Strakes & Cyber Lightbar
-    else if (cfg.type === 'daytona_sp3' || cfg.id === 5) {
-      for (let s = 0; s < 5; s++) {
-        const strake = new THREE.Mesh(new THREE.BoxGeometry(1.92, 0.036, 0.18), (s % 2 === 0) ? carbonMat : paintMat);
-        strake.position.set(0, 0.32 + s * 0.088, -2.24);
-        this.aeroGroup.add(strake);
-      }
-      const lightbar = new THREE.Mesh(new THREE.BoxGeometry(1.92, 0.028, 0.08), ledRed);
-      lightbar.position.set(0, 0.69, -2.26);
-      const fin = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.28, 1.4), carbonMat);
-      fin.position.set(0, 0.92, -1.35);
-      this.aeroGroup.add(lightbar, fin);
-
-      [-0.24, 0.24].forEach(x => {
-        const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.18, 14), titaniumMat);
-        pipe.rotation.x = Math.PI / 2;
-        pipe.position.set(x, 0.54, -2.27);
-        this.aeroGroup.add(pipe);
-        addFlame(x, 0.54, -2.30, 1.0);
-      });
-    }
-  }
-
-  setCarConfig(index) {
-    this.carIndex = Math.max(0, Math.min(index, CAR_CONFIGS.length - 1));
-    const cfg = CAR_CONFIGS[this.carIndex];
-
-    if (this.bodyMeshes && this.bodyMeshes.length > 0) {
-      const carPaintMat = new THREE.MeshStandardMaterial({
-        color: cfg.paintColor,
-        metalness: cfg.metalness,
-        roughness: cfg.roughness,
-        envMapIntensity: 2.5
-      });
-      this.bodyMeshes.forEach(mesh => {
-        mesh.material = carPaintMat;
-      });
-    }
-
-    this.rebuildAeroElements(cfg);
+    this.rebuildHypercarMesh();
   }
 
   setupContactShadow() {
@@ -911,14 +532,23 @@ export class Hypercar {
     const rotDelta = (this.forwardSpeed / 0.35) * dt;
     this.wheelRollAngle += rotDelta;
 
-    const baseRotX = -Math.PI / 2;
-    const roll = baseRotX + this.wheelRollAngle;
+    if (this.steerFL) this.steerFL.rotation.y = this.steerAngle;
+    if (this.steerFR) this.steerFR.rotation.y = this.steerAngle;
+    if (this.wheelFL) this.wheelFL.rotation.x = this.wheelRollAngle;
+    if (this.wheelFR) this.wheelFR.rotation.x = this.wheelRollAngle;
+    if (this.wheelRL) this.wheelRL.rotation.x = this.wheelRollAngle;
+    if (this.wheelRR) this.wheelRR.rotation.x = this.wheelRollAngle;
 
-    if (this.wheelFL) this.wheelFL.rotation.set(roll, 0, this.steerAngle, 'ZXY');
-    if (this.wheelFR) this.wheelFR.rotation.set(roll, 0, this.steerAngle, 'ZXY');
-    if (this.wheelRL) this.wheelRL.rotation.set(roll, 0, 0);
-    if (this.wheelRR) this.wheelRR.rotation.set(roll, 0, 0);
-    if (this.steeringWheel) this.steeringWheel.rotation.z = -this.steerAngle * 2.5;
+    // Nitro flames
+    if (this.flames) {
+      this.flames.forEach(f => {
+        f.visible = this.isNitro;
+        if (this.isNitro) {
+          const s = (f.baseScale || 1.0) * (0.85 + Math.random() * 0.3);
+          f.scale.set(s, s, s);
+        }
+      });
+    }
 
     // Brake lights
     if (this.taillightMat) {
@@ -1010,86 +640,9 @@ export class RemoteHypercar {
     }
 
     const cfg = CAR_CONFIGS[this.carIndex] || CAR_CONFIGS[0];
-
-    // High-performance procedural hypercar body for remote opponent
-    const carGroup = new THREE.Group();
-
-    const paintMat = new THREE.MeshStandardMaterial({
-      color: cfg.paintColor,
-      roughness: cfg.roughness,
-      metalness: cfg.metalness,
-      envMapIntensity: 2.2
-    });
-
-    const carbonMat = new THREE.MeshStandardMaterial({
-      color: 0x141416,
-      roughness: 0.35,
-      metalness: 0.4
-    });
-
-    const glassMat = new THREE.MeshStandardMaterial({
-      color: 0x070d18,
-      roughness: 0.05,
-      metalness: 0.3,
-      transparent: true,
-      opacity: 0.8
-    });
-
-    const bodyGeo = new THREE.BoxGeometry(1.94, 0.46, 4.35);
-    const body = new THREE.Mesh(bodyGeo, paintMat);
-    body.position.y = 0.38;
-    carGroup.add(body);
-
-    const canopyGeo = new THREE.BoxGeometry(1.36, 0.42, 2.1);
-    const canopy = new THREE.Mesh(canopyGeo, glassMat);
-    canopy.position.set(0, 0.72, -0.2);
-    carGroup.add(canopy);
-
-    // Front Splitter
-    const splitter = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.06, 0.5), carbonMat);
-    splitter.position.set(0, 0.16, 2.15);
-    carGroup.add(splitter);
-
-    // Wheels
-    const tireGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.3, 16);
-    tireGeo.rotateZ(Math.PI / 2);
-    const tireMat = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.85 });
-    const offsets = [
-      { x: -0.94, y: 0.35, z: 1.35 },
-      { x: 0.94, y: 0.35, z: 1.35 },
-      { x: -0.94, y: 0.35, z: -1.35 },
-      { x: 0.94, y: 0.35, z: -1.35 }
-    ];
-    offsets.forEach(pos => {
-      const wheel = new THREE.Mesh(tireGeo, tireMat);
-      wheel.position.set(pos.x, pos.y, pos.z);
-      carGroup.add(wheel);
-    });
-
-    // Custom Wing
-    const wing = new THREE.Mesh(new THREE.BoxGeometry(2.05, 0.05, 0.38), carbonMat);
-    wing.position.set(0, 1.05, -2.04);
-    carGroup.add(wing);
-
-    // Taillight
-    const taillight = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.06, 0.08), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
-    taillight.position.set(0, 0.50, -2.18);
-    carGroup.add(taillight);
-
-    // Nitro Flames
-    this.nitroFlames = [];
-    const flameGeo = new THREE.ConeGeometry(0.08, 1.2, 10);
-    flameGeo.rotateX(-Math.PI / 2);
-    const flameMat = new THREE.MeshBasicMaterial({ color: cfg.flameColor || 0x00f0ff, transparent: true, opacity: 0.9 });
-    [-0.15, 0.15].forEach(x => {
-      const flame = new THREE.Mesh(flameGeo, flameMat);
-      flame.position.set(x, 0.30, -2.25);
-      flame.visible = false;
-      carGroup.add(flame);
-      this.nitroFlames.push(flame);
-    });
-
-    this.carModel = carGroup;
+    const built = buildProceduralHypercar(cfg);
+    this.carModel = built.group;
+    this.nitroFlames = built.flames;
     this.group.add(this.carModel);
   }
 

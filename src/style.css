@@ -1491,21 +1491,21 @@ body, html {
 }
 
 /* ===================================================
-   VISUAL CAR SELECTION SHOWROOM MODAL
+   VISUAL CAR SELECTION SHOWROOM MODAL (UNOBSTRUCTED 3D)
    =================================================== */
 .garage-selection-modal {
   position: absolute;
   inset: 0;
-  background: rgba(4, 7, 16, 0.88);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  background: transparent !important;
+  pointer-events: none;
   z-index: 55;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 18px 24px 22px;
   opacity: 0;
   visibility: hidden;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
 .garage-selection-modal.active {
@@ -1513,28 +1513,74 @@ body, html {
   visibility: visible;
 }
 
-.garage-card {
-  width: 94%;
-  max-width: 920px;
-  max-height: 92vh;
-  overflow-y: auto;
-  border-radius: 24px;
-  padding: 24px 30px;
-  border: 1px solid rgba(0, 240, 255, 0.4);
-  box-shadow: 0 0 60px rgba(0, 240, 255, 0.25);
-  scrollbar-width: thin;
-  scrollbar-color: #00f0ff rgba(15, 23, 42, 0.6);
+.showroom-top-hud {
+  pointer-events: auto;
+  align-self: center;
+  text-align: center;
+  padding: 12px 28px;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 240, 255, 0.45);
+  background: rgba(10, 15, 29, 0.78);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 4px 26px rgba(0, 240, 255, 0.22);
 }
 
-.showroom-notice {
-  background: rgba(0, 240, 255, 0.12);
-  border: 1px solid rgba(0, 240, 255, 0.3);
-  border-radius: 10px;
-  padding: 8px 14px;
-  text-align: center;
-  margin-bottom: 16px;
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: #38bdf8;
-  letter-spacing: 0.08em;
+.showroom-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  color: #fff;
+  text-transform: uppercase;
 }
+
+.showroom-title span {
+  color: #00f0ff;
+  text-shadow: 0 0 12px #00f0ff;
+}
+
+.showroom-car-name {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: #ffffff;
+  margin-top: 4px;
+  text-transform: uppercase;
+  text-shadow: 0 0 16px rgba(0, 240, 255, 0.7);
+}
+
+.showroom-car-desc {
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #38bdf8;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.showroom-bottom-dock {
+  pointer-events: auto;
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 16px 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  background: rgba(10, 15, 29, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.65);
+}
+
+body.in-showroom .race-top-bar,
+body.in-showroom .checkpoint-waypoint,
+body.in-showroom .minimap-box,
+body.in-showroom .cockpit-cluster,
+body.in-showroom .controls-guide-bar {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+

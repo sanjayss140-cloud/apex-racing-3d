@@ -3,20 +3,99 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { audio } from './audio.js';
 
+export const CAR_CONFIGS = [
+  {
+    id: 0,
+    name: 'Ferrari 458 Italia',
+    manufacturer: 'Ferrari',
+    paintColor: 0xdc2626, // Rosso Corsa
+    accentColor: 0xfacc15, // Giallo Modena
+    caliperColor: 0xfacc15,
+    roughness: 0.16,
+    metalness: 0.88,
+    aeroWing: false,
+    sharkFin: false,
+    description: '4.5L V8 • 9,000 RPM Atmospheric Screamer'
+  },
+  {
+    id: 1,
+    name: 'Lamborghini Huracán STO',
+    manufacturer: 'Lamborghini',
+    paintColor: 0x16a34a, // Verde Mantis
+    accentColor: 0x06b6d4, // Blu Laufey Aero
+    caliperColor: 0x06b6d4,
+    roughness: 0.14,
+    metalness: 0.86,
+    aeroWing: true,
+    sharkFin: true,
+    description: '5.2L V10 • Carbon Shark Fin & Massive GT Wing'
+  },
+  {
+    id: 2,
+    name: 'Bugatti Chiron Super Sport',
+    manufacturer: 'Bugatti',
+    paintColor: 0x1d4ed8, // French Racing Blue
+    accentColor: 0x0f172a, // Deep Obsidian Carbon
+    caliperColor: 0x38bdf8,
+    roughness: 0.12,
+    metalness: 0.92,
+    aeroWing: true,
+    dualDiffuser: true,
+    description: '8.0L Quad-Turbo W16 • High-Speed Longtail Aero'
+  },
+  {
+    id: 3,
+    name: 'McLaren P1',
+    manufacturer: 'McLaren',
+    paintColor: 0xea580c, // Volcano Sunset Orange
+    accentColor: 0x18181b, // Stealth Carbon
+    caliperColor: 0xea580c,
+    roughness: 0.15,
+    metalness: 0.90,
+    aeroWing: true,
+    curvedWing: true,
+    description: 'Twin-Turbo V8 Hybrid • Active Aero DRS Wing'
+  },
+  {
+    id: 4,
+    name: 'Porsche 918 Spyder',
+    paintColor: 0xcbd5e1, // Liquid Metal Silver
+    accentColor: 0x84cc16, // Acid Green Weissach
+    caliperColor: 0x84cc16,
+    roughness: 0.18,
+    metalness: 0.94,
+    aeroWing: false,
+    stripes: true,
+    description: 'Naturally Aspirated V8 Hybrid • Weissach Aerodynamics'
+  },
+  {
+    id: 5,
+    name: 'Koenigsegg Jesko Absolut',
+    paintColor: 0xf8fafc, // Ghost Arctic White
+    accentColor: 0xdc2626, // Apex Crimson
+    caliperColor: 0xdc2626,
+    roughness: 0.10,
+    metalness: 0.95,
+    aeroWing: true,
+    twinApexFins: true,
+    description: 'Twin-Turbo Flat-Plane V8 • 500+ KM/H Speed Record Breaker'
+  }
+];
+
 export class Hypercar {
   constructor(scene) {
     this.scene = scene;
 
-    // Driving Physics Constants (Tuned for ultra-satisfying 10/10 arcade handling)
-    this.acceleration = 46.0;        // 0-100 in 2.7s
-    this.nitroAcceleration = 76.0;   // Explosive nitrous boost
-    this.maxSpeed = 84.0;            // ~302 km/h
-    this.maxNitroSpeed = 104.0;      // ~375 km/h
-    this.reverseMaxSpeed = 22.0;     // ~80 km/h
-    this.braking = 58.0;             // Crisp carbon-ceramic brakes
-    this.drag = 0.989;               // Low aerodynamic drag
-    this.steerResponse = 2.7;
-    this.driftGrip = 0.85;
+    // Hypercar Physics Constants: Tuned for 500+ KM/H Top Speed
+    this.acceleration = 68.0;        // Explosive power delivery
+    this.nitroAcceleration = 115.0;  // Nitrous boost up to 600 KM/H
+    this.maxSpeed = 139.0;           // ~500.4 km/h (139 m/s)
+    this.maxNitroSpeed = 166.7;      // ~600.1 km/h (166.7 m/s)
+    this.reverseMaxSpeed = 28.0;     // ~100 km/h
+    this.braking = 95.0;             // High-G Carbon-ceramic brakes
+    this.drag = 0.993;               // Sleek aerodynamic coefficient
+    this.steerResponse = 2.4;
+    this.driftGrip = 0.88;
 
     // Dynamic State
     this.position = new THREE.Vector3(0, 0.05, 0);
@@ -27,12 +106,13 @@ export class Hypercar {
     this.heading = 0;                // Yaw angle in radians
     this.steerAngle = 0;             // Front wheels steering angle
     this.currentGear = 1;
-    this.rpm = 1000;
+    this.rpm = 1200;
     this.isDrifting = false;
     this.isBraking = false;
     this.isNitro = false;
     this.nitroFuel = 100;            // 0-100%
     this.driftScore = 0;
+    this.carIndex = 0;
 
     // Inputs
     this.inputs = {
@@ -44,10 +124,10 @@ export class Hypercar {
       nitro: false
     };
 
-    // Gear Ratios for RPM
-    this.gearMaxSpeeds = [0, 22, 42, 60, 76, 92, 112];
+    // Gear Ratios scaled for 500-600 km/h
+    this.gearMaxSpeeds = [0, 30, 60, 90, 115, 140, 175];
 
-    // Submesh references from GLTF
+    // Submesh references
     this.wheelFL = null;
     this.wheelFR = null;
     this.wheelRL = null;
@@ -55,12 +135,16 @@ export class Hypercar {
     this.steeringWheel = null;
     this.wheelRollAngle = 0;
 
+    this.bodyMeshes = [];
+    this.aeroGroup = new THREE.Group();
+
     this.group = new THREE.Group();
     this.scene.add(this.group);
 
-    // Isolated wrapper for authentic chassis pitch & roll dynamics
+    // Chassis dynamic roll/pitch wrapper
     this.carModelWrapper = new THREE.Group();
     this.group.add(this.carModelWrapper);
+    this.carModelWrapper.add(this.aeroGroup);
 
     this.isReady = false;
     this.readyCallbacks = [];
@@ -72,7 +156,7 @@ export class Hypercar {
     this.setupExhaustFlames();
     this.setupHeadlights();
 
-    // Load the official high-poly Ferrari 458 Italia with local DRACO decompressor
+    // Load base 3D Hypercar model
     this.loadFerrariModel();
   }
 
@@ -84,10 +168,84 @@ export class Hypercar {
     }
   }
 
+  setCarConfig(index) {
+    this.carIndex = Math.max(0, Math.min(index, CAR_CONFIGS.length - 1));
+    const cfg = CAR_CONFIGS[this.carIndex];
+
+    // Update body paint materials
+    this.bodyMeshes.forEach(mesh => {
+      if (mesh.material) {
+        mesh.material.color.setHex(cfg.paintColor);
+        mesh.material.roughness = cfg.roughness;
+        mesh.material.metalness = cfg.metalness;
+        mesh.material.needsUpdate = true;
+      }
+    });
+
+    // Update custom aero wings / fins
+    this.rebuildAeroElements(cfg);
+  }
+
+  rebuildAeroElements(cfg) {
+    while (this.aeroGroup.children.length > 0) {
+      this.aeroGroup.remove(this.aeroGroup.children[0]);
+    }
+
+    const carbonMat = new THREE.MeshStandardMaterial({
+      color: 0x141416,
+      roughness: 0.35,
+      metalness: 0.4
+    });
+
+    const accentMat = new THREE.MeshStandardMaterial({
+      color: cfg.accentColor,
+      roughness: 0.25,
+      metalness: 0.7
+    });
+
+    // Custom aerodynamics based on selected hypercar
+    if (cfg.aeroWing) {
+      // High-downforce carbon GT Wing
+      const wing = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.04, 0.32), carbonMat);
+      wing.position.set(0, 0.88, -1.95);
+      wing.rotation.x = 0.08;
+      this.aeroGroup.add(wing);
+
+      // Wing upright struts
+      const strutL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.35, 0.18), carbonMat);
+      strutL.position.set(-0.45, 0.72, -1.92);
+      const strutR = strutL.clone();
+      strutR.position.x = 0.45;
+      this.aeroGroup.add(strutL, strutR);
+
+      // Endplates
+      const endplateL = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.18, 0.36), accentMat);
+      endplateL.position.set(-0.86, 0.88, -1.95);
+      const endplateR = endplateL.clone();
+      endplateR.position.x = 0.86;
+      this.aeroGroup.add(endplateL, endplateR);
+    }
+
+    if (cfg.sharkFin) {
+      // Huracán STO Central Dorsal Fin
+      const finGeo = new THREE.BoxGeometry(0.03, 0.28, 0.95);
+      const fin = new THREE.Mesh(finGeo, accentMat);
+      fin.position.set(0, 0.85, -1.25);
+      this.aeroGroup.add(fin);
+    }
+
+    if (cfg.twinApexFins) {
+      // Jesko Dual Top Aero Stabilizers
+      const fin1 = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.25, 0.55), accentMat);
+      fin1.position.set(-0.42, 0.84, -1.75);
+      const fin2 = fin1.clone();
+      fin2.position.x = 0.42;
+      this.aeroGroup.add(fin1, fin2);
+    }
+  }
+
   loadFerrariModel() {
     const loader = new GLTFLoader();
-
-    // Attach local DRACO decompressor using base-relative path
     const rawBase = import.meta.env.BASE_URL || './';
     const cleanBase = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
     const dracoPath = `${cleanBase}draco/`;
@@ -97,11 +255,12 @@ export class Hypercar {
     dracoLoader.setDecoderPath(dracoPath);
     loader.setDRACOLoader(dracoLoader);
 
-    // Rosso Corsa Ferrari Red Metallic Paint
+    const initialCfg = CAR_CONFIGS[this.carIndex];
+
     const ferrariPaint = new THREE.MeshStandardMaterial({
-      color: 0xdc2626,
-      metalness: 0.88,
-      roughness: 0.16,
+      color: initialCfg.paintColor,
+      metalness: initialCfg.metalness,
+      roughness: initialCfg.roughness,
       envMapIntensity: 2.5
     });
 
@@ -138,45 +297,38 @@ export class Hypercar {
     });
 
     const yellowBadgeMat = new THREE.MeshStandardMaterial({
-      color: 0xfacc15,
+      color: initialCfg.accentColor,
       roughness: 0.3,
       metalness: 0.2
     });
 
-    const ledHeadlightMat = new THREE.MeshBasicMaterial({
-      color: 0xffffff
-    });
-
-    const shiftLedMat = new THREE.MeshBasicMaterial({
-      color: 0xff1e1e
-    });
+    const ledHeadlightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const shiftLedMat = new THREE.MeshBasicMaterial({ color: 0xff1e1e });
 
     loader.load(
       modelPath,
       (gltf) => {
         const model = gltf.scene;
-        model.scale.set(1.0, 1.0, 1.0); // True 1:1 scale (4.52m long, 1.94m wide)
-        model.rotation.y = Math.PI;     // Align forward facing with world +Z
+        model.scale.set(1.0, 1.0, 1.0);
+        model.rotation.y = Math.PI;
         model.position.set(0, 0.02, 0);
 
-        // Traverse and enhance authentic Ferrari materials
         model.traverse((child) => {
           if (child.isMesh) {
             child.castShadow = true;
             child.receiveShadow = false;
-
             const name = child.name.toLowerCase();
 
             if (name === 'body') {
               child.material = ferrariPaint;
+              this.bodyMeshes.push(child);
             } else if (name === 'glass') {
               child.material = glassMat;
-            } else if (name === 'carbon' || name === 'carbon_fibre_trim' || name === 'carbon_fibre') {
+            } else if (name.includes('carbon')) {
               child.material = carbonMat;
             } else if (name.startsWith('rim_') || name === 'chrome' || name === 'metal') {
               child.material = chromeMat;
             } else if (name === 'lights_red') {
-              this.taillightMesh = child;
               this.taillightMat = new THREE.MeshStandardMaterial({
                 color: 0x880000,
                 emissive: 0xff0000,
@@ -199,7 +351,6 @@ export class Hypercar {
           }
         });
 
-        // Hook up separate steerable and spinning wheels
         model.traverse((child) => {
           if (child.name === 'wheel_fl') this.wheelFL = child;
           if (child.name === 'wheel_fr') this.wheelFR = child;
@@ -212,7 +363,8 @@ export class Hypercar {
         this.ferrariModel = model;
         this.isReady = true;
 
-        console.log('Ferrari 458 Italia 3D model loaded successfully at 1:1 scale!');
+        this.setCarConfig(this.carIndex);
+
         this.readyCallbacks.forEach(cb => {
           try { cb(); } catch (e) { console.error(e); }
         });
@@ -266,12 +418,11 @@ export class Hypercar {
     this.spotTargetR.position.set(0.7, 0.1, 24);
     this.group.add(this.spotLightR, this.spotTargetR);
     this.spotLightR.target = this.spotTargetR;
-
   }
 
   setupExhaustFlames() {
     this.flames = [];
-    const flameGeo = new THREE.ConeGeometry(0.08, 1.3, 12);
+    const flameGeo = new THREE.ConeGeometry(0.09, 1.4, 12);
     flameGeo.rotateX(-Math.PI / 2);
 
     const flameMat = new THREE.MeshBasicMaterial({
@@ -280,7 +431,6 @@ export class Hypercar {
       opacity: 0.95
     });
 
-    // Authentic Ferrari 458 Triple Central Exhaust pipes
     const pipeXOffsets = [-0.11, 0.0, 0.11];
     pipeXOffsets.forEach(x => {
       const flame = new THREE.Mesh(flameGeo, flameMat);
@@ -298,155 +448,132 @@ export class Hypercar {
     const opacities = new Float32Array(this.maxSkidPoints);
 
     this.skidGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    this.skidGeo.setAttribute('alpha', new THREE.BufferAttribute(opacities, 1));
+    this.skidGeo.setAttribute('opacity', new THREE.BufferAttribute(opacities, 1));
 
-    const skidShaderMat = new THREE.ShaderMaterial({
+    const skidMat = new THREE.PointsMaterial({
+      color: 0x111111,
+      size: 0.42,
       transparent: true,
-      depthWrite: false,
-      uniforms: {
-        skidColor: { value: new THREE.Color(0x09090b) }
-      },
-      vertexShader: `
-        attribute float alpha;
-        varying float vAlpha;
-        void main() {
-          vAlpha = alpha;
-          gl_PointSize = 13.0;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform vec3 skidColor;
-        varying float vAlpha;
-        void main() {
-          float d = length(gl_PointCoord - vec2(0.5));
-          if (d > 0.5) discard;
-          gl_FragColor = vec4(skidColor, vAlpha * 0.6);
-        }
-      `
-    });
-
-    this.skidPoints = new THREE.Points(this.skidGeo, skidShaderMat);
-    this.scene.add(this.skidPoints);
-    this.skidHead = 0;
-  }
-
-  addSkidPoint(x, z, alpha = 0.75) {
-    const posAttr = this.skidGeo.attributes.position;
-    const alphaAttr = this.skidGeo.attributes.alpha;
-    const idx = this.skidHead % this.maxSkidPoints;
-
-    posAttr.setXYZ(idx, x, 0.05, z);
-    alphaAttr.setX(idx, alpha);
-
-    posAttr.needsUpdate = true;
-    alphaAttr.needsUpdate = true;
-    this.skidHead++;
-  }
-
-  setupTireSmoke() {
-    this.maxSmoke = 65;
-    const sGeo = new THREE.BufferGeometry();
-    const sPos = new Float32Array(this.maxSmoke * 3);
-    this.smokeLifes = new Float32Array(this.maxSmoke);
-    this.smokeVels = [];
-
-    for (let i = 0; i < this.maxSmoke; i++) {
-      this.smokeVels.push(new THREE.Vector3());
-      this.smokeLifes[i] = 0;
-    }
-
-    sGeo.setAttribute('position', new THREE.BufferAttribute(sPos, 3));
-
-    const sMat = new THREE.PointsMaterial({
-      color: 0xf1f5f9,
-      size: 1.6,
-      transparent: true,
-      opacity: 0.38,
+      opacity: 0.65,
       depthWrite: false
     });
 
-    this.smokeMesh = new THREE.Points(sGeo, sMat);
-    this.scene.add(this.smokeMesh);
-    this.smokeHead = 0;
+    this.skidPoints = new THREE.Points(this.skidGeo, skidMat);
+    this.scene.add(this.skidPoints);
+    this.skidIndex = 0;
   }
 
-  emitSmoke(pos, vel) {
-    const idx = this.smokeHead % this.maxSmoke;
-    const posAttr = this.smokeMesh.geometry.attributes.position;
-
-    posAttr.setXYZ(idx, pos.x, pos.y, pos.z);
-    this.smokeLifes[idx] = 1.0;
-    this.smokeVels[idx].copy(vel);
-
+  addSkidPoint(x, z, alpha = 0.6) {
+    const posAttr = this.skidGeo.getAttribute('position');
+    posAttr.setXYZ(this.skidIndex, x, 0.02, z);
     posAttr.needsUpdate = true;
-    this.smokeHead++;
+    this.skidIndex = (this.skidIndex + 1) % this.maxSkidPoints;
   }
 
-  updateSmoke(dt) {
-    const posAttr = this.smokeMesh.geometry.attributes.position;
-    for (let i = 0; i < this.maxSmoke; i++) {
-      if (this.smokeLifes[i] > 0) {
-        this.smokeLifes[i] -= dt * 1.6;
-        const x = posAttr.getX(i) + this.smokeVels[i].x * dt;
-        const y = posAttr.getY(i) + this.smokeVels[i].y * dt + 0.5 * dt;
-        const z = posAttr.getZ(i) + this.smokeVels[i].z * dt;
+  setupSparks() {
+    this.maxSparks = 60;
+    this.sparksGeo = new THREE.BufferGeometry();
+    const pos = new Float32Array(this.maxSparks * 3);
+    this.sparksVel = [];
+
+    for (let i = 0; i < this.maxSparks; i++) {
+      pos[i * 3] = 0;
+      pos[i * 3 + 1] = -100;
+      pos[i * 3 + 2] = 0;
+      this.sparksVel.push(new THREE.Vector3());
+    }
+
+    this.sparksGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const sparksMat = new THREE.PointsMaterial({
+      color: 0xffaa00,
+      size: 0.16,
+      transparent: true,
+      opacity: 0.95,
+      blending: THREE.AdditiveBlending
+    });
+
+    this.sparksPoints = new THREE.Points(this.sparksGeo, sparksMat);
+    this.scene.add(this.sparksPoints);
+    this.sparkIndex = 0;
+  }
+
+  emitSparks(origin) {
+    const posAttr = this.sparksGeo.getAttribute('position');
+    for (let i = 0; i < 3; i++) {
+      const idx = (this.sparkIndex + i) % this.maxSparks;
+      posAttr.setXYZ(idx, origin.x + (Math.random() - 0.5) * 0.4, 0.15, origin.z + (Math.random() - 0.5) * 0.4);
+      this.sparksVel[idx].set(
+        (Math.random() - 0.5) * 8,
+        Math.random() * 6 + 2,
+        (Math.random() - 0.5) * 8
+      );
+    }
+    posAttr.needsUpdate = true;
+    this.sparkIndex = (this.sparkIndex + 3) % this.maxSparks;
+  }
+
+  updateSparks(dt) {
+    const posAttr = this.sparksGeo.getAttribute('position');
+    for (let i = 0; i < this.maxSparks; i++) {
+      let y = posAttr.getY(i);
+      if (y > -10) {
+        let x = posAttr.getX(i) + this.sparksVel[i].x * dt;
+        let z = posAttr.getZ(i) + this.sparksVel[i].z * dt;
+        y += this.sparksVel[i].y * dt;
+        this.sparksVel[i].y -= 25.0 * dt;
+        if (y < 0.02) y = -100;
         posAttr.setXYZ(i, x, y, z);
       }
     }
     posAttr.needsUpdate = true;
   }
 
-  setupSparks() {
-    this.maxSparks = 60;
-    const spGeo = new THREE.BufferGeometry();
-    const spPos = new Float32Array(this.maxSparks * 3);
-    this.sparkLifes = new Float32Array(this.maxSparks);
-    this.sparkVels = [];
+  setupTireSmoke() {
+    this.maxSmoke = 70;
+    this.smokeGeo = new THREE.BufferGeometry();
+    const pos = new Float32Array(this.maxSmoke * 3);
+    this.smokeLifetimes = new Float32Array(this.maxSmoke);
+    this.smokeVel = [];
 
-    for (let i = 0; i < this.maxSparks; i++) {
-      this.sparkVels.push(new THREE.Vector3());
-      this.sparkLifes[i] = 0;
+    for (let i = 0; i < this.maxSmoke; i++) {
+      pos[i * 3 + 1] = -100;
+      this.smokeLifetimes[i] = 0;
+      this.smokeVel.push(new THREE.Vector3());
     }
 
-    spGeo.setAttribute('position', new THREE.BufferAttribute(spPos, 3));
-    const spMat = new THREE.PointsMaterial({
-      color: 0xfde047,
-      size: 0.8,
+    this.smokeGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const smokeMat = new THREE.PointsMaterial({
+      color: 0xcccccc,
+      size: 0.65,
       transparent: true,
-      opacity: 0.9,
+      opacity: 0.45,
       depthWrite: false
     });
 
-    this.sparkMesh = new THREE.Points(spGeo, spMat);
-    this.scene.add(this.sparkMesh);
-    this.sparkHead = 0;
+    this.smokePoints = new THREE.Points(this.smokeGeo, smokeMat);
+    this.scene.add(this.smokePoints);
+    this.smokeIndex = 0;
   }
 
-  emitSparks(pos) {
-    for (let k = 0; k < 2; k++) {
-      const idx = this.sparkHead % this.maxSparks;
-      const posAttr = this.sparkMesh.geometry.attributes.position;
-      posAttr.setXYZ(idx, pos.x, pos.y + 0.3, pos.z);
-      this.sparkLifes[idx] = 0.4;
-      this.sparkVels[idx].set(
-        (Math.random() - 0.5) * 6,
-        Math.random() * 3 + 1,
-        (Math.random() - 0.5) * 6
-      );
-      posAttr.needsUpdate = true;
-      this.sparkHead++;
-    }
+  emitSmoke(origin, vel) {
+    const posAttr = this.smokeGeo.getAttribute('position');
+    const idx = this.smokeIndex;
+    posAttr.setXYZ(idx, origin.x, 0.2, origin.z);
+    this.smokeLifetimes[idx] = 1.0;
+    this.smokeVel[idx].copy(vel);
+    posAttr.needsUpdate = true;
+    this.smokeIndex = (this.smokeIndex + 1) % this.maxSmoke;
   }
 
-  updateSparks(dt) {
-    const posAttr = this.sparkMesh.geometry.attributes.position;
-    for (let i = 0; i < this.maxSparks; i++) {
-      if (this.sparkLifes[i] > 0) {
-        this.sparkLifes[i] -= dt * 2.0;
-        const x = posAttr.getX(i) + this.sparkVels[i].x * dt;
-        const y = posAttr.getY(i) + this.sparkVels[i].y * dt - 9.8 * dt * dt;
-        const z = posAttr.getZ(i) + this.sparkVels[i].z * dt;
+  updateSmoke(dt) {
+    const posAttr = this.smokeGeo.getAttribute('position');
+    for (let i = 0; i < this.maxSmoke; i++) {
+      if (this.smokeLifetimes[i] > 0) {
+        this.smokeLifetimes[i] -= dt * 1.6;
+        let x = posAttr.getX(i) + this.smokeVel[i].x * dt;
+        let y = posAttr.getY(i) + (0.8 + Math.random() * 0.4) * dt;
+        let z = posAttr.getZ(i) + this.smokeVel[i].z * dt;
+        if (this.smokeLifetimes[i] <= 0) y = -100;
         posAttr.setXYZ(i, x, y, z);
       }
     }
@@ -454,7 +581,7 @@ export class Hypercar {
   }
 
   update(dt, track = null) {
-    // 1. Nitro Handling & Refill
+    // 1. Nitrous Management
     this.isNitro = this.inputs.nitro && this.nitroFuel > 0 && this.inputs.forward;
     if (this.isNitro) {
       this.nitroFuel = Math.max(0, this.nitroFuel - dt * 26);
@@ -469,13 +596,13 @@ export class Hypercar {
       if (this.flames) {
         this.flames.forEach(f => { f.visible = false; });
       }
-      this.nitroFuel = Math.min(100, this.nitroFuel + dt * 8.0);
+      this.nitroFuel = Math.min(100, this.nitroFuel + dt * 10.0);
     }
 
-    // 2. Steering & Yaw Dynamics
+    // 2. Steering Dynamics (Smoothed for high-speed stability)
     let targetSteer = 0;
-    if (this.inputs.left) targetSteer += 0.52;
-    if (this.inputs.right) targetSteer -= 0.52;
+    if (this.inputs.left) targetSteer += 0.48;
+    if (this.inputs.right) targetSteer -= 0.48;
     this.steerAngle = THREE.MathUtils.lerp(this.steerAngle, targetSteer, dt * 14);
 
     const forward = new THREE.Vector3(Math.sin(this.heading), 0, Math.cos(this.heading));
@@ -485,55 +612,55 @@ export class Hypercar {
     this.lateralSpeed = this.velocity.dot(right);
     this.speed = this.velocity.length();
 
-    // 3. Acceleration & Braking Forces
+    // 3. Power, Acceleration & Braking Forces
     let accelForce = 0;
     const currentMax = this.isNitro ? this.maxNitroSpeed : this.maxSpeed;
 
-    // SPACE = Dedicated Foot & Hand BRAKE
+    // Brake / Handbrake
     if (this.inputs.brake) {
       this.isBraking = true;
-      if (Math.abs(this.forwardSpeed) > 0.3) {
-        accelForce -= Math.sign(this.forwardSpeed) * this.braking * 1.8;
+      if (Math.abs(this.forwardSpeed) > 0.4) {
+        accelForce -= Math.sign(this.forwardSpeed) * this.braking * 1.6;
       } else {
-        this.velocity.multiplyScalar(0.7);
+        this.velocity.multiplyScalar(0.8);
       }
     } else {
       this.isBraking = false;
     }
 
-    // W = Accelerate Forward
+    // Forward Throttle (Up to 500+ KM/H)
     if (this.inputs.forward && !this.inputs.brake) {
       const force = this.isNitro ? this.nitroAcceleration : this.acceleration;
       if (this.forwardSpeed < currentMax) {
         accelForce += force;
       }
     }
-    // S = Dedicated REVERSE Gear
+    // Reverse Gear
     else if (this.inputs.backward && !this.inputs.brake) {
       if (this.forwardSpeed > 0.6) {
-        // Swift deceleration before reversing
-        accelForce -= this.braking * 1.4;
+        accelForce -= this.braking * 1.5;
       } else if (this.forwardSpeed > -this.reverseMaxSpeed) {
-        accelForce -= this.acceleration * 0.75;
+        accelForce -= this.acceleration * 0.7;
       }
     }
 
-    // Drift activation: tapping Brake (Space) while steering with speed, or lateral momentum
-    this.isDrifting = (this.inputs.brake || Math.abs(this.lateralSpeed) > 5.2) && this.speed > 7.0;
+    // Drift activation
+    this.isDrifting = (this.inputs.brake || Math.abs(this.lateralSpeed) > 6.0) && this.speed > 10.0;
 
-    // Apply acceleration
+    // Apply acceleration force
     this.velocity.addScaledVector(forward, accelForce * dt);
 
-    // Turn torque
+    // High-speed adaptive yaw response (prevents over-spinning at 500 km/h)
     if (Math.abs(this.forwardSpeed) > 0.5) {
       const turnDir = this.forwardSpeed >= 0 ? 1 : -1;
-      const speedFactor = Math.min(1.0, this.speed / 12.0);
-      const yawDelta = this.steerAngle * this.steerResponse * speedFactor * turnDir * dt;
+      const speedNorm = Math.min(1.0, this.speed / 15.0);
+      const highSpeedDamp = 1.0 / (1.0 + (this.speed / 80.0) * 0.35);
+      const yawDelta = this.steerAngle * this.steerResponse * speedNorm * highSpeedDamp * turnDir * dt;
       this.heading += yawDelta;
     }
 
-    // Grip & Aerodynamic drag
-    const grip = this.isDrifting ? this.driftGrip : 0.94;
+    // Aerodynamic lateral grip
+    const grip = this.isDrifting ? this.driftGrip : 0.95;
     this.velocity.sub(right.clone().multiplyScalar(this.lateralSpeed * (1 - grip)));
     this.velocity.multiplyScalar(Math.pow(this.drag, dt * 60));
 
@@ -541,41 +668,52 @@ export class Hypercar {
     this.position.addScaledVector(this.velocity, dt);
     this.position.y = 0.05;
 
-    // Smooth Armco Barrier Sliding & Clamping ("No Off-Race")
+    // 4. Smooth, Natural Lane & Armco Boundary Handling (Zero Shake, Zero Jitter)
     if (track) {
       const trackInfo = track.getClosestTrackPoint(this.position);
-      const maxAllowed = track.roadHalfWidth - 1.25;
+      const maxAllowed = track.roadHalfWidth - 1.2;
+
       if (trackInfo.distFromCenter > maxAllowed) {
-        const sign = Math.sign(trackInfo.lateralDist);
-        this.position.copy(trackInfo.closestPoint).addScaledVector(trackInfo.normal, sign * maxAllowed);
+        const sign = Math.sign(trackInfo.lateralDist) || 1;
+        const excess = trackInfo.distFromCenter - maxAllowed;
+
+        // Smooth position correction without jarring hard-snap
+        this.position.sub(trackInfo.normal.clone().multiplyScalar(sign * excess));
         this.position.y = 0.05;
 
-        // Slide smoothly along road tangent
-        const forwardSpeed = this.velocity.dot(trackInfo.tangent);
-        this.velocity.copy(trackInfo.tangent).multiplyScalar(forwardSpeed * 0.96);
+        // Soft elastic rebound: cancel outward velocity smoothly
+        const outwardVel = this.velocity.dot(trackInfo.normal) * sign;
+        if (outwardVel > 0) {
+          // Deflect gently with 0.1 restitution (smooth glide, NO violent stop or vibration)
+          this.velocity.sub(trackInfo.normal.clone().multiplyScalar(sign * outwardVel * 1.1));
+        }
 
-        // Smoothly guide car heading along road tangent
+        // Gentle barrier friction glide
+        this.velocity.multiplyScalar(0.994);
+
+        // Smooth tangent heading alignment (no sharp snapping)
         const targetHeading = Math.atan2(trackInfo.tangent.x, trackInfo.tangent.z);
-        this.heading = THREE.MathUtils.lerp(this.heading, targetHeading, dt * 6);
+        this.heading = THREE.MathUtils.lerp(this.heading, targetHeading, dt * 2.5);
 
-        this.emitSparks(this.position);
+        if (Math.random() < 0.3) {
+          this.emitSparks(this.position);
+        }
       }
     }
 
-    // 4. Update Three.js Transform synchronously (Rock-solid, ZERO lag)
+    // Update Mesh Transform
     this.group.position.copy(this.position);
-    // Root group stays strictly level with ground on Y-axis yaw only
     this.group.rotation.set(0, this.heading, 0);
 
-    // Subtle chassis roll applied locally to car body wrapper
+    // Chassis pitch & roll dynamics
     if (this.carModelWrapper) {
-      const rollAngle = -(this.lateralSpeed / 22.0) * 0.05;
-      const pitchAngle = (accelForce / 50.0) * 0.025;
+      const rollAngle = -(this.lateralSpeed / 30.0) * 0.04;
+      const pitchAngle = (accelForce / 70.0) * 0.02;
       this.carModelWrapper.rotation.z = THREE.MathUtils.lerp(this.carModelWrapper.rotation.z, rollAngle, dt * 8);
       this.carModelWrapper.rotation.x = THREE.MathUtils.lerp(this.carModelWrapper.rotation.x, pitchAngle, dt * 8);
     }
 
-    // Contact Shadow follows car
+    // Shadow
     if (this.shadowBlob) {
       this.shadowBlob.position.set(this.position.x, 0.03, this.position.z);
       this.shadowBlob.rotation.z = -this.heading;
@@ -584,30 +722,20 @@ export class Hypercar {
     // 5. Gear & RPM
     this.calculateGearsAndRPM();
 
-    // 6. Animate Ferrari Wheels & Steering Wheel
+    // 6. Wheels rotation & steering
     const rotDelta = (this.forwardSpeed / 0.34) * dt;
     this.wheelRollAngle += rotDelta;
 
-    const baseRotX = -Math.PI / 2; // Authentic GLTF rest pose
+    const baseRotX = -Math.PI / 2;
     const roll = baseRotX + this.wheelRollAngle;
 
-    if (this.wheelFL) {
-      this.wheelFL.rotation.set(roll, 0, this.steerAngle, 'ZXY');
-    }
-    if (this.wheelFR) {
-      this.wheelFR.rotation.set(roll, 0, this.steerAngle, 'ZXY');
-    }
-    if (this.wheelRL) {
-      this.wheelRL.rotation.set(roll, 0, 0);
-    }
-    if (this.wheelRR) {
-      this.wheelRR.rotation.set(roll, 0, 0);
-    }
-    if (this.steeringWheel) {
-      this.steeringWheel.rotation.z = -this.steerAngle * 2.5;
-    }
+    if (this.wheelFL) this.wheelFL.rotation.set(roll, 0, this.steerAngle, 'ZXY');
+    if (this.wheelFR) this.wheelFR.rotation.set(roll, 0, this.steerAngle, 'ZXY');
+    if (this.wheelRL) this.wheelRL.rotation.set(roll, 0, 0);
+    if (this.wheelRR) this.wheelRR.rotation.set(roll, 0, 0);
+    if (this.steeringWheel) this.steeringWheel.rotation.z = -this.steerAngle * 2.5;
 
-    // Taillight dynamic brake flare (authentic Ferrari lights_red mesh)
+    // Brake lights
     if (this.taillightMat) {
       if (this.isBraking) {
         this.taillightMat.emissive.setHex(0xff0000);
@@ -618,7 +746,7 @@ export class Hypercar {
       }
     }
 
-    // Lay skid marks & tire smoke during drifts
+    // Drifting tire tracks & smoke
     if (this.isDrifting) {
       const leftWheelPos = this.position.clone().addScaledVector(right, -1.0);
       const rightWheelPos = this.position.clone().addScaledVector(right, 1.0);
@@ -636,13 +764,9 @@ export class Hypercar {
     this.updateSmoke(dt);
     this.updateSparks(dt);
 
-    // 7. Audio & Drift score
+    // Audio
     audio.updateEngine(this.rpm, this.inputs.forward, this.isNitro);
     audio.updateDrift(this.isDrifting, Math.abs(this.lateralSpeed) / 10.0);
-
-    if (this.isDrifting) {
-      this.driftScore += Math.round(Math.abs(this.lateralSpeed) * dt * 45);
-    }
   }
 
   calculateGearsAndRPM() {
@@ -660,7 +784,7 @@ export class Hypercar {
     const gearProgress = Math.min(1.0, Math.max(0, (spd - minSpd) / (maxSpd - minSpd)));
 
     const idleRPM = 1200;
-    const maxRPM = 8800;
+    const maxRPM = 9200;
     this.rpm = Math.round(idleRPM + gearProgress * (maxRPM - idleRPM));
   }
 
@@ -671,5 +795,181 @@ export class Hypercar {
     this.heading = heading;
     this.steerAngle = 0;
     this.nitroFuel = 100;
+  }
+}
+
+// Remote Hypercar for Multiplayer Opponents
+export class RemoteHypercar {
+  constructor(scene, playerInfo) {
+    this.scene = scene;
+    this.playerId = playerInfo.id;
+    this.playerName = playerInfo.name || 'Opponent';
+    this.carIndex = playerInfo.carIndex || 0;
+
+    this.group = new THREE.Group();
+    this.scene.add(this.group);
+
+    this.targetPos = new THREE.Vector3();
+    this.targetHeading = 0;
+    this.currentHeading = 0;
+
+    this.buildRemoteCarMesh();
+    this.buildNameplate();
+  }
+
+  buildRemoteCarMesh() {
+    const cfg = CAR_CONFIGS[this.carIndex] || CAR_CONFIGS[0];
+
+    // High-performance procedural hypercar body
+    const carGroup = new THREE.Group();
+
+    const paintMat = new THREE.MeshStandardMaterial({
+      color: cfg.paintColor,
+      roughness: cfg.roughness,
+      metalness: cfg.metalness,
+      envMapIntensity: 2.2
+    });
+
+    const carbonMat = new THREE.MeshStandardMaterial({
+      color: 0x141416,
+      roughness: 0.35,
+      metalness: 0.4
+    });
+
+    const glassMat = new THREE.MeshStandardMaterial({
+      color: 0x070d18,
+      roughness: 0.05,
+      metalness: 0.3,
+      transparent: true,
+      opacity: 0.8
+    });
+
+    // Main Chassis Monocoque
+    const bodyGeo = new THREE.BoxGeometry(1.92, 0.48, 4.3);
+    const body = new THREE.Mesh(bodyGeo, paintMat);
+    body.position.y = 0.38;
+    carGroup.add(body);
+
+    // Aerodynamic Cockpit Greenhouse Canopy
+    const canopyGeo = new THREE.BoxGeometry(1.4, 0.42, 2.1);
+    const canopy = new THREE.Mesh(canopyGeo, glassMat);
+    canopy.position.set(0, 0.72, -0.2);
+    carGroup.add(canopy);
+
+    // Front Splitter
+    const splitter = new THREE.Mesh(new THREE.BoxGeometry(1.94, 0.06, 0.5), carbonMat);
+    splitter.position.set(0, 0.16, 2.15);
+    carGroup.add(splitter);
+
+    // Rear Wing
+    if (cfg.aeroWing) {
+      const wing = new THREE.Mesh(new THREE.BoxGeometry(1.76, 0.04, 0.3), carbonMat);
+      wing.position.set(0, 0.88, -1.92);
+      carGroup.add(wing);
+
+      const strutL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.32, 0.15), carbonMat);
+      strutL.position.set(-0.45, 0.72, -1.9);
+      const strutR = strutL.clone();
+      strutR.position.x = 0.45;
+      carGroup.add(strutL, strutR);
+    }
+
+    // 4 Sport Wheels
+    const tireGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.3, 16);
+    tireGeo.rotateZ(Math.PI / 2);
+    const tireMat = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.85 });
+
+    const wheelOffsets = [
+      { x: -0.92, y: 0.35, z: 1.35 },
+      { x: 0.92, y: 0.35, z: 1.35 },
+      { x: -0.92, y: 0.35, z: -1.35 },
+      { x: 0.92, y: 0.35, z: -1.35 }
+    ];
+
+    wheelOffsets.forEach(pos => {
+      const wheel = new THREE.Mesh(tireGeo, tireMat);
+      wheel.position.set(pos.x, pos.y, pos.z);
+      carGroup.add(wheel);
+    });
+
+    // Headlights
+    const lightMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+    const headlightL = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.08, 0.1), lightMat);
+    headlightL.position.set(-0.68, 0.44, 2.14);
+    const headlightR = headlightL.clone();
+    headlightR.position.x = 0.68;
+    carGroup.add(headlightL, headlightR);
+
+    // Taillights
+    const tailMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const taillight = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.08, 0.1), tailMat);
+    taillight.position.set(0, 0.48, -2.14);
+    carGroup.add(taillight);
+
+    // Nitro Flames
+    this.nitroFlames = [];
+    const flameGeo = new THREE.ConeGeometry(0.08, 1.2, 10);
+    flameGeo.rotateX(-Math.PI / 2);
+    const flameMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.9 });
+    [-0.15, 0.15].forEach(x => {
+      const flame = new THREE.Mesh(flameGeo, flameMat);
+      flame.position.set(x, 0.26, -2.25);
+      flame.visible = false;
+      carGroup.add(flame);
+      this.nitroFlames.push(flame);
+    });
+
+    this.group.add(carGroup);
+  }
+
+  buildNameplate() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+    ctx.roundRect(4, 4, 248, 56, 12);
+    ctx.fill();
+
+    ctx.strokeStyle = '#00f0ff';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 24px Rajdhani, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(this.playerName.toUpperCase(), 128, 32);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+    const sprite = new THREE.Sprite(mat);
+    sprite.scale.set(3.2, 0.8, 1);
+    sprite.position.set(0, 1.9, 0);
+    this.group.add(sprite);
+  }
+
+  updateTelemetry(data) {
+    if (data.x !== undefined && data.z !== undefined) {
+      this.targetPos.set(data.x, data.y || 0.05, data.z);
+    }
+    if (data.heading !== undefined) {
+      this.targetHeading = data.heading;
+    }
+    if (data.isNitro !== undefined) {
+      this.nitroFlames.forEach(f => { f.visible = data.isNitro; });
+    }
+  }
+
+  update(dt) {
+    // Butter-smooth interpolation for remote cars
+    this.group.position.lerp(this.targetPos, dt * 16);
+    this.currentHeading = THREE.MathUtils.lerp(this.currentHeading, this.targetHeading, dt * 14);
+    this.group.rotation.set(0, this.currentHeading, 0);
+  }
+
+  destroy() {
+    this.scene.remove(this.group);
   }
 }

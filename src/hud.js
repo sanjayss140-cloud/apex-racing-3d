@@ -18,12 +18,11 @@ export class RacingHUD {
     this.checkpointBadgeEl = document.getElementById('cp-badge');
     this.checkpointDistEl = document.getElementById('cp-dist');
     this.splitNotificationEl = document.getElementById('split-notice');
-    this.driftScoreEl = document.getElementById('drift-score');
     this.countdownOverlay = document.getElementById('countdown-overlay');
     this.countdownText = document.getElementById('countdown-text');
 
     this.splitTimer = null;
-    this.smoothRPM = 1000;
+    this.smoothRPM = 1200;
     this.smoothSpeed = 0;
   }
 
@@ -35,10 +34,10 @@ export class RacingHUD {
     canvas.style.height = `${cssHeight}px`;
   }
 
-  showPreparingMessage() {
+  showPreparingMessage(msg = 'WARMING UP TIRES...') {
     if (this.countdownOverlay && this.countdownText) {
       this.countdownOverlay.classList.add('active');
-      this.countdownText.textContent = 'READYING HYPERCAR';
+      this.countdownText.textContent = msg;
       this.countdownText.style.fontSize = '2.2rem';
       this.countdownText.style.letterSpacing = '4px';
       this.countdownText.style.color = '#00f0ff';
@@ -82,13 +81,12 @@ export class RacingHUD {
     nextStep();
   }
 
-  updateDashboard(speedMps, rpm, gear, isNitro, nitroFuel, isDrifting, driftScore) {
+  updateDashboard(speedMps, rpm, gear, isNitro, nitroFuel) {
     const targetSpeedKmh = Math.max(0, Math.round(speedMps * 3.6));
     this.smoothSpeed += (targetSpeedKmh - this.smoothSpeed) * 0.28;
     this.smoothRPM += (rpm - this.smoothRPM) * 0.22;
 
     this.drawHypercarGauge(this.smoothSpeed, this.smoothRPM, gear, isNitro, nitroFuel);
-    this.updateDriftScore(driftScore, isDrifting);
   }
 
   drawHypercarGauge(speedKmh, rpm, gear, isNitro, nitroFuel) {
@@ -120,8 +118,8 @@ export class RacingHUD {
     ctx.arc(cx, cy, radius, startAngle, endAngle);
     ctx.stroke();
 
-    // 2. Active RPM Fill Arc
-    const rpmFraction = Math.min(1.0, Math.max(0, (rpm - 1000) / 7800));
+    // 2. Active RPM Fill Arc (scaled to 9500 RPM)
+    const rpmFraction = Math.min(1.0, Math.max(0, (rpm - 1000) / 8500));
     const currentAngle = startAngle + rpmFraction * totalAngle;
 
     if (rpmFraction > 0.01) {
@@ -139,9 +137,9 @@ export class RacingHUD {
       ctx.shadowBlur = 0;
     }
 
-    // 3. Digital Speedometer (Center)
+    // 3. Digital Speedometer (Center) - Crisp display up to 600 KM/H
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 56px "JetBrains Mono", monospace';
+    ctx.font = 'bold 54px "JetBrains Mono", monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.shadowColor = isNitro ? '#00f0ff' : 'rgba(0,0,0,0.6)';
@@ -224,24 +222,6 @@ export class RacingHUD {
     }, 2800);
   }
 
-  updateDriftScore(score, isDrifting) {
-    if (!this.driftScoreEl) return;
-    if (score > 0) {
-      this.driftScoreEl.style.display = 'block';
-      this.driftScoreEl.innerHTML = `
-        <span class="drift-label">DRIFT SCORE</span>
-        <span class="drift-val">+${score.toLocaleString()} PTS</span>
-      `;
-      if (isDrifting) {
-        this.driftScoreEl.classList.add('active');
-      } else {
-        this.driftScoreEl.classList.remove('active');
-      }
-    } else {
-      this.driftScoreEl.style.display = 'none';
-    }
-  }
-
   drawMinimap(carPos, carHeading, checkpoints, activeCPId) {
     if (!this.minimapCtx) return;
     const ctx = this.minimapCtx;
@@ -254,11 +234,11 @@ export class RacingHUD {
     const h = 140;
     ctx.clearRect(0, 0, w, h);
 
-    const scale = 0.22;
-    const centerX = 78;
-    const centerY = 68;
+    const scale = 0.20;
+    const centerX = 70;
+    const centerY = 70;
 
-    // Track loop connecting all 7 world wonders checkpoints
+    // Track loop
     ctx.strokeStyle = '#334155';
     ctx.lineWidth = 5;
     ctx.lineCap = 'round';

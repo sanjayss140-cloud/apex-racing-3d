@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",
+    "peerjs": "^1.5.5",
     "three": "^0.186.0"
   },
   "devDependencies": {

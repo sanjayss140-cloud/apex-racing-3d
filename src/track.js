@@ -20,30 +20,27 @@ export const MAP_CONFIGS = [
     badge: 'WORLD WONDERS',
     circuitLength: '1.8 KM',
     splinePoints: [
-      new THREE.Vector3(0, 0, 60),      // Launch & Finish Straight
-      new THREE.Vector3(0, 0, -80),     // Tokyo Metropolis High-Speed Strip
-      new THREE.Vector3(-60, 0, -175),  // Entry into Alpine Canyon
-      new THREE.Vector3(-150, 0, -220), // Alpine Mountain Summit Pass
-      new THREE.Vector3(-225, 0, -170), // Descent from Alpine Summit
-      new THREE.Vector3(-280, 0, -50),  // Giza Desert Dunes Straight
-      new THREE.Vector3(-270, 0, 80),   // Great Sphinx Sweeping Curve
-      new THREE.Vector3(-190, 0, 175),  // Approach to Roman Colosseum
-      new THREE.Vector3(-85, 0, 230),   // Imperial Forum sweeping bend
-      new THREE.Vector3(45, 0, 245),    // Pacific Coast Oceanview Highway
-      new THREE.Vector3(150, 0, 195),   // Coastal Beach Curve
-      new THREE.Vector3(190, 0, 80),    // Approach to Cyber Hyper-Tunnel
-      new THREE.Vector3(155, 0, -35),   // Tunnel Exit
-      new THREE.Vector3(105, 0, -30),   // Flowing Stadium Approach
-      new THREE.Vector3(55, 0, 5),      // Stadium Turn Arc
-      new THREE.Vector3(20, 0, 40)      // Stadium Entry Straight
+      new THREE.Vector3(0, 0, 180),        // Launch & Finish Straight (Tokyo)
+      new THREE.Vector3(130, 0, 160),      // Tokyo Strip
+      new THREE.Vector3(230, 0, 90),       // Pacific Ocean Highway
+      new THREE.Vector3(270, 0, -20),      // Tropical Beach Curve
+      new THREE.Vector3(220, 0, -140),     // Cyber Hyper-Tunnel Entrance
+      new THREE.Vector3(130, 0, -220),     // Cyber Tunnel Exit
+      new THREE.Vector3(0, 0, -250),       // Alpine Canyon Entry
+      new THREE.Vector3(-130, 0, -230),    // Alpine Summit Pass
+      new THREE.Vector3(-240, 0, -150),    // Giza Desert Dunes
+      new THREE.Vector3(-310, 0, -30),     // Great Sphinx
+      new THREE.Vector3(-280, 0, 90),      // Approach to Colosseum
+      new THREE.Vector3(-190, 0, 180),     // Roman Forum
+      new THREE.Vector3(-90, 0, 200)       // Olympic Victory Stadium Approach
     ],
     checkpoints: [
-      { id: 1, name: 'TOKYO METROPOLIS', wonder: 'WONDER 01: NEO-TOKYO SPEEDWAY', color: '#00f0ff', roadIdx: 45 },
-      { id: 2, name: 'ALPINE SUMMIT', wonder: 'WONDER 02: MOUNTAIN CLIMB & CANYON', color: '#38bdf8', roadIdx: 125 },
-      { id: 3, name: 'GIZA PYRAMIDS', wonder: 'WONDER 03: GREAT PYRAMIDS & SPHINX', color: '#f59e0b', roadIdx: 215 },
-      { id: 4, name: 'ROMAN COLOSSEUM', wonder: 'WONDER 04: IMPERIAL ROMAN FORUM', color: '#eab308', roadIdx: 305 },
-      { id: 5, name: 'PACIFIC COAST', wonder: 'WONDER 05: TROPICAL PARADISE BEACH', color: '#10b981', roadIdx: 395 },
-      { id: 6, name: 'HYPER TUNNEL', wonder: 'WONDER 06: CYBER NEON LASER TUBE', color: '#d946ef', roadIdx: 470 },
+      { id: 1, name: 'TOKYO METROPOLIS', wonder: 'WONDER 01: NEO-TOKYO SPEEDWAY', color: '#00f0ff', roadIdx: 50 },
+      { id: 2, name: 'PACIFIC COAST', wonder: 'WONDER 02: TROPICAL PARADISE BEACH', color: '#10b981', roadIdx: 135 },
+      { id: 3, name: 'HYPER TUNNEL', wonder: 'WONDER 03: CYBER NEON LASER TUBE', color: '#d946ef', roadIdx: 220 },
+      { id: 4, name: 'ALPINE SUMMIT', wonder: 'WONDER 04: MOUNTAIN CLIMB & CANYON', color: '#38bdf8', roadIdx: 320 },
+      { id: 5, name: 'GIZA PYRAMIDS', wonder: 'WONDER 05: GREAT PYRAMIDS & SPHINX', color: '#f59e0b', roadIdx: 410 },
+      { id: 6, name: 'ROMAN COLOSSEUM', wonder: 'WONDER 06: IMPERIAL ROMAN FORUM', color: '#eab308', roadIdx: 500 },
       { id: 7, name: 'VICTORY GRAND PRIX', wonder: 'WONDER 07: WORLD CHAMPIONSHIP FINISH', color: '#ef4444', roadIdx: 585 }
     ]
   },
@@ -53,30 +50,27 @@ export const MAP_CONFIGS = [
     badge: 'CYBER METROPOLIS',
     circuitLength: '2.0 KM',
     splinePoints: [
-      new THREE.Vector3(0, 0, 80),
-      new THREE.Vector3(0, 0, -100),
-      new THREE.Vector3(-90, 0, -210),
-      new THREE.Vector3(-200, 0, -230),
-      new THREE.Vector3(-290, 0, -130),
-      new THREE.Vector3(-310, 0, 20),
-      new THREE.Vector3(-250, 0, 160),
-      new THREE.Vector3(-150, 0, 240),
-      new THREE.Vector3(-10, 0, 270),
-      new THREE.Vector3(130, 0, 250),
-      new THREE.Vector3(230, 0, 160),
-      new THREE.Vector3(270, 0, 40),
-      new THREE.Vector3(230, 0, -80),
-      new THREE.Vector3(130, 0, -150),
-      new THREE.Vector3(45, 0, -90),
-      new THREE.Vector3(15, 0, 0)
+      new THREE.Vector3(0, 0, 200),        // Shibuya Skyway Start
+      new THREE.Vector3(140, 0, 180),      // Ginza Glass Towers
+      new THREE.Vector3(260, 0, 100),      // Akihabara Strip
+      new THREE.Vector3(300, 0, -30),      // Tokyo Bay Tunnel Entrance
+      new THREE.Vector3(250, 0, -160),     // Underwater Glass Tube
+      new THREE.Vector3(140, 0, -250),     // Tunnel Exit
+      new THREE.Vector3(0, 0, -280),       // Odaiba Rainbow Bridge
+      new THREE.Vector3(-140, 0, -250),    // Cable Bridge Span
+      new THREE.Vector3(-260, 0, -160),    // Roppongi Canyon
+      new THREE.Vector3(-320, 0, -30),     // Mega-Skyscraper Pass
+      new THREE.Vector3(-280, 0, 100),     // Cyber Arena Approach
+      new THREE.Vector3(-180, 0, 190),     // Arena Turn Arc
+      new THREE.Vector3(-80, 0, 210)       // Final Straight
     ],
     checkpoints: [
-      { id: 1, name: 'SHIBUYA SKYWAY', wonder: 'SECTOR 01: SHIBUYA NEON FLYOVER', color: '#00f0ff', roadIdx: 45 },
-      { id: 2, name: 'GINZA SPEEDWAY', wonder: 'SECTOR 02: GINZA GLASS TOWERS', color: '#38bdf8', roadIdx: 125 },
-      { id: 3, name: 'AKIHABARA ALLEY', wonder: 'SECTOR 03: CYBER ANIME STRIP', color: '#ec4899', roadIdx: 215 },
-      { id: 4, name: 'TOKYO BAY TUNNEL', wonder: 'SECTOR 04: UNDERWATER GLASS TUBE', color: '#06b6d4', roadIdx: 305 },
-      { id: 5, name: 'ODAIBA RAINBOW', wonder: 'SECTOR 05: RAINBOW CABLE BRIDGE', color: '#a855f7', roadIdx: 395 },
-      { id: 6, name: 'ROPPONGI CANYON', wonder: 'SECTOR 06: MEGA-SKYSCRAPER PASS', color: '#eab308', roadIdx: 470 },
+      { id: 1, name: 'SHIBUYA SKYWAY', wonder: 'SECTOR 01: SHIBUYA NEON FLYOVER', color: '#00f0ff', roadIdx: 50 },
+      { id: 2, name: 'GINZA SPEEDWAY', wonder: 'SECTOR 02: GINZA GLASS TOWERS', color: '#38bdf8', roadIdx: 135 },
+      { id: 3, name: 'AKIHABARA ALLEY', wonder: 'SECTOR 03: CYBER ANIME STRIP', color: '#ec4899', roadIdx: 220 },
+      { id: 4, name: 'TOKYO BAY TUNNEL', wonder: 'SECTOR 04: UNDERWATER GLASS TUBE', color: '#06b6d4', roadIdx: 320 },
+      { id: 5, name: 'ODAIBA RAINBOW', wonder: 'SECTOR 05: RAINBOW CABLE BRIDGE', color: '#a855f7', roadIdx: 410 },
+      { id: 6, name: 'ROPPONGI CANYON', wonder: 'SECTOR 06: MEGA-SKYSCRAPER PASS', color: '#eab308', roadIdx: 500 },
       { id: 7, name: 'APEX ARENA FINISH', wonder: 'SECTOR 07: CYBER ARENA PODIUM', color: '#ef4444', roadIdx: 585 }
     ]
   },
@@ -86,30 +80,27 @@ export const MAP_CONFIGS = [
     badge: 'MOLTEN BADLANDS',
     circuitLength: '2.2 KM',
     splinePoints: [
-      new THREE.Vector3(0, 0, 70),
-      new THREE.Vector3(-40, 0, -80),
-      new THREE.Vector3(-120, 0, -180),
-      new THREE.Vector3(-230, 0, -200),
-      new THREE.Vector3(-310, 0, -100),
-      new THREE.Vector3(-290, 0, 40),
-      new THREE.Vector3(-200, 0, 140),
-      new THREE.Vector3(-90, 0, 190),
-      new THREE.Vector3(40, 0, 240),
-      new THREE.Vector3(160, 0, 230),
-      new THREE.Vector3(250, 0, 140),
-      new THREE.Vector3(280, 0, 10),
-      new THREE.Vector3(220, 0, -110),
-      new THREE.Vector3(120, 0, -180),
-      new THREE.Vector3(45, 0, -120),
-      new THREE.Vector3(10, 0, -20)
+      new THREE.Vector3(0, 0, 210),        // Caldera Rim Start
+      new THREE.Vector3(150, 0, 190),      // Molten Falls High-Speed Strip
+      new THREE.Vector3(270, 0, 110),      // Magma Cascade
+      new THREE.Vector3(310, 0, -20),      // Obsidian Canyon Chasm
+      new THREE.Vector3(260, 0, -150),     // Basalt Arch
+      new THREE.Vector3(150, 0, -240),     // Geyser Basin
+      new THREE.Vector3(0, 0, -270),       // Steam & Sulfur Vents
+      new THREE.Vector3(-150, 0, -240),    // Crimson Gorge Chute
+      new THREE.Vector3(-270, 0, -150),    // Red Rock Pass
+      new THREE.Vector3(-320, 0, -20),     // Subterranean Lava River
+      new THREE.Vector3(-280, 0, 110),     // Magma Tube Exit
+      new THREE.Vector3(-180, 0, 200),     // Pyramid of Fire Summit
+      new THREE.Vector3(-80, 0, 220)       // Caldera Final Straight
     ],
     checkpoints: [
-      { id: 1, name: 'CALDERA LAUNCH', wonder: 'SECTOR 01: ACTIVE VOLCANO RIM', color: '#f97316', roadIdx: 45 },
-      { id: 2, name: 'MOLTEN LAVA FALLS', wonder: 'SECTOR 02: 80M MAGMA CASCADE', color: '#ef4444', roadIdx: 125 },
-      { id: 3, name: 'OBSIDIAN ARCH', wonder: 'SECTOR 03: BASALT CHASM BRIDGE', color: '#fb923c', roadIdx: 215 },
-      { id: 4, name: 'GEYSER BASIN', wonder: 'SECTOR 04: STEAM & SULFUR VENTS', color: '#facc15', roadIdx: 305 },
-      { id: 5, name: 'CRIMSON GORGE', wonder: 'SECTOR 05: RED ROCK HIGH-SPEED CHUTE', color: '#ea580c', roadIdx: 395 },
-      { id: 6, name: 'MAGMA TUBE CAVERN', wonder: 'SECTOR 06: SUBTERRANEAN LAVA RIVER', color: '#dc2626', roadIdx: 470 },
+      { id: 1, name: 'CALDERA LAUNCH', wonder: 'SECTOR 01: ACTIVE VOLCANO RIM', color: '#f97316', roadIdx: 50 },
+      { id: 2, name: 'MOLTEN LAVA FALLS', wonder: 'SECTOR 02: 80M MAGMA CASCADE', color: '#ef4444', roadIdx: 135 },
+      { id: 3, name: 'OBSIDIAN ARCH', wonder: 'SECTOR 03: BASALT CHASM BRIDGE', color: '#fb923c', roadIdx: 220 },
+      { id: 4, name: 'GEYSER BASIN', wonder: 'SECTOR 04: STEAM & SULFUR VENTS', color: '#facc15', roadIdx: 320 },
+      { id: 5, name: 'CRIMSON GORGE', wonder: 'SECTOR 05: RED ROCK HIGH-SPEED CHUTE', color: '#ea580c', roadIdx: 410 },
+      { id: 6, name: 'MAGMA TUBE CAVERN', wonder: 'SECTOR 06: SUBTERRANEAN LAVA RIVER', color: '#dc2626', roadIdx: 500 },
       { id: 7, name: 'INFERNO SUMMIT', wonder: 'SECTOR 07: PYRAMID OF FIRE FINISH', color: '#fbbf24', roadIdx: 585 }
     ]
   }
@@ -1034,33 +1025,29 @@ export class Track {
       this.addToTrack(cavea);
     }
 
-    // 2. Arch of Constantine (Grand Roman Triumphal Monument)
+    // 2. Arch of Constantine (Grand Roman Triumphal Monument - 36M Clear Road Span)
     const archGroup = new THREE.Group();
     archGroup.position.set(-135, 0, 245);
     archGroup.rotation.y = -Math.PI * 0.25;
 
-    const archPillarL = new THREE.Mesh(new THREE.BoxGeometry(5.5, 20, 6.5), travertineMat);
-    archPillarL.position.set(-9.5, 10, 0);
-    const archPillarR = new THREE.Mesh(new THREE.BoxGeometry(5.5, 20, 6.5), travertineMat);
-    archPillarR.position.set(9.5, 10, 0);
-    const archCentralPillarL = new THREE.Mesh(new THREE.BoxGeometry(3.5, 20, 6.5), travertineMat);
-    archCentralPillarL.position.set(-3.5, 10, 0);
-    const archCentralPillarR = new THREE.Mesh(new THREE.BoxGeometry(3.5, 20, 6.5), travertineMat);
-    archCentralPillarR.position.set(3.5, 10, 0);
+    const archPillarL = new THREE.Mesh(new THREE.BoxGeometry(6.0, 22, 7.0), travertineMat);
+    archPillarL.position.set(-18.0, 11, 0);
+    const archPillarR = new THREE.Mesh(new THREE.BoxGeometry(6.0, 22, 7.0), travertineMat);
+    archPillarR.position.set(18.0, 11, 0);
 
-    const attic = new THREE.Mesh(new THREE.BoxGeometry(26, 7.5, 7.0), travertineMat);
-    attic.position.set(0, 23.5, 0);
+    const attic = new THREE.Mesh(new THREE.BoxGeometry(42, 8.0, 7.5), travertineMat);
+    attic.position.set(0, 24.0, 0);
 
     const goldMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.9, roughness: 0.2 });
-    [-11.5, -4.5, 4.5, 11.5].forEach(cx => {
-      const col = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.7, 18, 12), travertineMat);
-      col.position.set(cx, 10, 3.8);
-      const cap = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.4, 1.6), goldMat);
-      cap.position.set(cx, 19.5, 3.8);
+    [-18.0, 18.0].forEach(cx => {
+      const col = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.8, 20, 12), travertineMat);
+      col.position.set(cx, 10, 4.0);
+      const cap = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.6, 1.8), goldMat);
+      cap.position.set(cx, 20.5, 4.0);
       archGroup.add(col, cap);
     });
 
-    archGroup.add(archPillarL, archPillarR, archCentralPillarL, archCentralPillarR, attic);
+    archGroup.add(archPillarL, archPillarR, attic);
     this.addToTrack(archGroup);
 
     // 3. Colonnade of the Roman Temple of Saturn (6 Fluted Columns with Pediment)
@@ -1452,6 +1439,8 @@ export class Track {
     const lateralDist = toCar.dot(normal);
 
     return {
+      index: closestIdx,
+      point: closestPt,
       closestPoint: closestPt,
       tangent,
       normal,

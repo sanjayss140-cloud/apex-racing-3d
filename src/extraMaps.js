@@ -225,7 +225,7 @@ export function buildCyberExpresswayMap(track) {
 
 function buildUnderwaterGlassTunnel(track, startIdx, endIdx) {
   const roadPoints = track.roadPoints;
-  const ringGeo = new THREE.TorusGeometry(track.roadHalfWidth + 1.2, 0.45, 12, 32);
+  const ringGeo = new THREE.TorusGeometry(17.5, 0.45, 12, 32);
   const ringMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
 
   const glassMat = new THREE.MeshStandardMaterial({
@@ -241,7 +241,7 @@ function buildUnderwaterGlassTunnel(track, startIdx, endIdx) {
     const heading = track.getHeadingAt(i);
 
     const ring = new THREE.Mesh(ringGeo, ringMat);
-    ring.position.set(pt.x, 8.5, pt.z);
+    ring.position.set(pt.x, 6.0, pt.z);
     ring.rotation.y = heading;
     track.addToTrack(ring);
     track.pulsingGates.push(ring);

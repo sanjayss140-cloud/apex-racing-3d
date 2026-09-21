@@ -95,15 +95,26 @@ class ApexRacingGame {
     this.car = new Hypercar(this.scene);
     this.hud = new RacingHUD();
 
-    // Start position aligned on Launch Straight facing Gate 1
-    this.car.reset(0, 35, Math.PI);
-
-    // Initial camera position
-    this.camera.position.set(0, 3.2, 42.5);
-    this.cameraTarget.set(0, 1.2, 20);
-    this.camera.lookAt(this.cameraTarget);
+    // Start position dynamically aligned on the track launch straight facing Gate 1
+    this.resetCarToStart();
 
     this.track.highlightCheckpoint(this.activeCheckpoint);
+  }
+
+  resetCarToStart() {
+    if (this.track && this.track.roadPoints && this.track.roadPoints.length > 0) {
+      const p0 = this.track.roadPoints[0];
+      const heading0 = this.track.getHeadingAt(0);
+      this.car.reset(p0.x, p0.z, heading0);
+
+      const forwardVec = new THREE.Vector3(Math.sin(heading0), 0, Math.cos(heading0));
+      const behindVec = forwardVec.clone().multiplyScalar(-7.2);
+      this.camera.position.copy(this.car.position).add(behindVec).add(new THREE.Vector3(0, 2.8, 0));
+      this.cameraTarget.copy(this.car.position).addScaledVector(forwardVec, 8);
+      this.camera.lookAt(this.cameraTarget);
+    } else {
+      this.car.reset(0, 35, Math.PI);
+    }
   }
 
   setup3DWaypointArrow() {
@@ -240,7 +251,7 @@ class ApexRacingGame {
     this.activeMapIndex = mapIndex;
     this.track.setMap(mapIndex);
     setMapEnvironment(this.renderer, this.scene, mapIndex);
-    this.car.reset(0, 35, Math.PI);
+    this.resetCarToStart();
     this.activeCheckpoint = 1;
     this.track.highlightCheckpoint(this.activeCheckpoint);
 
@@ -260,7 +271,7 @@ class ApexRacingGame {
     this.raceFinished = false;
     this.activeCheckpoint = 1;
     this.topSpeedReached = 0;
-    this.car.reset(0, 35, Math.PI);
+    this.resetCarToStart();
     this.track.highlightCheckpoint(this.activeCheckpoint);
 
     const stageTitle = this.gameMode === 'solo' ? `STAGE ${this.soloTourStage + 1} / 3` : 'WARMING UP TIRES...';
@@ -516,7 +527,7 @@ class ApexRacingGame {
       const resetPos = targetCP.pos.clone().addScaledVector(forward, -16);
       this.car.reset(resetPos.x, resetPos.z, targetCP.rotation);
     } else {
-      this.car.reset(0, 35, Math.PI);
+      this.resetCarToStart();
     }
 
     const forwardVec = new THREE.Vector3(Math.sin(this.car.heading), 0, Math.cos(this.car.heading));
@@ -666,11 +677,11 @@ class ApexRacingGame {
 
     document.getElementById('silver-name').textContent = 'K. RÄIKKÖNEN';
     document.getElementById('silver-time').textContent = this.hud.formatTime(totalTime + 4.85);
-    document.getElementById('silver-car').textContent = 'Huracán STO';
+    document.getElementById('silver-car').textContent = 'Pagani Huayra BC';
 
     document.getElementById('bronze-name').textContent = 'M. VERSTAPPEN';
     document.getElementById('bronze-time').textContent = this.hud.formatTime(totalTime + 9.32);
-    document.getElementById('bronze-car').textContent = 'Chiron Super Sport';
+    document.getElementById('bronze-car').textContent = 'Jesko Absolut';
 
     // Stats Grid
     document.getElementById('fin-time').textContent = this.hud.formatTime(totalTime);
@@ -705,14 +716,14 @@ class ApexRacingGame {
     } else {
       standings = [
         { name: 'YOU', car: myCarCfg.name, time: this.elapsedTime, isMe: true },
-        { name: 'K. RÄIKKÖNEN', car: 'Huracán STO', time: this.elapsedTime + 1.84, isMe: false },
-        { name: 'M. VERSTAPPEN', car: 'Chiron Super Sport', time: this.elapsedTime + 3.42, isMe: false }
+        { name: 'K. RÄIKKÖNEN', car: 'Pagani Huayra BC', time: this.elapsedTime + 1.84, isMe: false },
+        { name: 'M. VERSTAPPEN', car: 'Jesko Absolut', time: this.elapsedTime + 3.42, isMe: false }
       ];
     }
 
     const p1 = standings[0] || { name: 'YOU', car: myCarCfg.name, time: this.elapsedTime };
-    const p2 = standings[1] || { name: 'RIVAL 1', car: 'Huracán STO', time: this.elapsedTime + 2.1 };
-    const p3 = standings[2] || { name: 'RIVAL 2', car: 'Chiron SS', time: this.elapsedTime + 4.5 };
+    const p2 = standings[1] || { name: 'RIVAL 1', car: 'Pagani Huayra BC', time: this.elapsedTime + 2.1 };
+    const p3 = standings[2] || { name: 'RIVAL 2', car: 'Jesko Absolut', time: this.elapsedTime + 4.5 };
 
     document.getElementById('gold-name').textContent = p1.name;
     document.getElementById('gold-time').textContent = this.hud.formatTime(p1.time);

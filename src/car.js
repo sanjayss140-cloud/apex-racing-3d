@@ -6,79 +6,81 @@ import { audio } from './audio.js';
 export const CAR_CONFIGS = [
   {
     id: 0,
-    name: 'Ferrari 458 Italia',
-    manufacturer: 'Ferrari',
-    paintColor: 0xdc2626, // Rosso Corsa
-    accentColor: 0xfacc15, // Giallo Modena
-    caliperColor: 0xfacc15,
-    roughness: 0.16,
-    metalness: 0.88,
-    aeroWing: false,
-    sharkFin: false,
-    description: '4.5L V8 • 9,000 RPM Atmospheric Screamer'
-  },
-  {
-    id: 1,
-    name: 'Lamborghini Huracán STO',
-    manufacturer: 'Lamborghini',
-    paintColor: 0x16a34a, // Verde Mantis
-    accentColor: 0x06b6d4, // Blu Laufey Aero
-    caliperColor: 0x06b6d4,
-    roughness: 0.14,
-    metalness: 0.86,
-    aeroWing: true,
-    sharkFin: true,
-    description: '5.2L V10 • Carbon Shark Fin & Massive GT Wing'
-  },
-  {
-    id: 2,
-    name: 'Bugatti Chiron Super Sport',
+    type: 'tourbillon',
+    name: 'Bugatti Tourbillon',
     manufacturer: 'Bugatti',
-    paintColor: 0x1d4ed8, // French Racing Blue
-    accentColor: 0x0f172a, // Deep Obsidian Carbon
+    paintColor: 0x7bb6d6, // Ice Metallic Sky Blue (User Photo 1)
+    secondaryColor: 0x0f172a, // Deep Obsidian Carbon
+    accentColor: 0x38bdf8, // Electric Cyan Jewel LED
     caliperColor: 0x38bdf8,
     roughness: 0.12,
     metalness: 0.92,
-    aeroWing: true,
-    dualDiffuser: true,
-    description: '8.0L Quad-Turbo W16 • High-Speed Longtail Aero'
+    description: 'V16 Hybrid • Horseshoe Grille & Dorsal Spine (500 KM/H)'
   },
   {
-    id: 3,
-    name: 'McLaren P1',
-    manufacturer: 'McLaren',
-    paintColor: 0xea580c, // Volcano Sunset Orange
-    accentColor: 0x18181b, // Stealth Carbon
-    caliperColor: 0xea580c,
-    roughness: 0.15,
-    metalness: 0.90,
-    aeroWing: true,
-    curvedWing: true,
-    description: 'Twin-Turbo V8 Hybrid • Active Aero DRS Wing'
+    id: 1,
+    type: 'huayra_bc',
+    name: 'Pagani Huayra BC',
+    manufacturer: 'Pagani',
+    paintColor: 0x420c15, // Deep Gloss Cherry / Burgundy Carbon (User Photo 2)
+    secondaryColor: 0x141416, // Exposed Carbon Weave
+    accentColor: 0xfacc15, // Giallo Gold Pinstriping
+    caliperColor: 0xfacc15,
+    roughness: 0.14,
+    metalness: 0.88,
+    description: 'Twin-Turbo V12 • Spyder Roll Hoops & Leaf Mirrors (500 KM/H)'
   },
   {
-    id: 4,
-    name: 'Porsche 918 Spyder',
-    paintColor: 0xcbd5e1, // Liquid Metal Silver
-    accentColor: 0x84cc16, // Acid Green Weissach
-    caliperColor: 0x84cc16,
-    roughness: 0.18,
-    metalness: 0.94,
-    aeroWing: false,
-    stripes: true,
-    description: 'Naturally Aspirated V8 Hybrid • Weissach Aerodynamics'
-  },
-  {
-    id: 5,
+    id: 2,
+    type: 'jesko',
     name: 'Koenigsegg Jesko Absolut',
+    manufacturer: 'Koenigsegg',
     paintColor: 0xf8fafc, // Ghost Arctic White
+    secondaryColor: 0x0f172a,
     accentColor: 0xdc2626, // Apex Crimson
     caliperColor: 0xdc2626,
     roughness: 0.10,
     metalness: 0.95,
-    aeroWing: true,
-    twinApexFins: true,
-    description: 'Twin-Turbo Flat-Plane V8 • 500+ KM/H Speed Record Breaker'
+    description: 'Twin-Turbo V8 • Twin Apex Fins & Longtail Aero (500 KM/H)'
+  },
+  {
+    id: 3,
+    type: 'mclaren_p1',
+    name: 'McLaren P1 GT',
+    manufacturer: 'McLaren',
+    paintColor: 0xea580c, // Volcano Sunset Metallic Orange
+    secondaryColor: 0x18181b,
+    accentColor: 0xea580c,
+    caliperColor: 0xea580c,
+    roughness: 0.15,
+    metalness: 0.90,
+    description: 'V8 Hybrid • Roof Snorkel Scoop & Active DRS Wing (500 KM/H)'
+  },
+  {
+    id: 4,
+    type: 'revuelto',
+    name: 'Lamborghini Revuelto',
+    manufacturer: 'Lamborghini',
+    paintColor: 0x16a34a, // Verde Mantis Pearl Green
+    secondaryColor: 0x09090b,
+    accentColor: 0x06b6d4, // Blu Laufey Cyber Cyan
+    caliperColor: 0x06b6d4,
+    roughness: 0.14,
+    metalness: 0.86,
+    description: 'V12 Hybrid • Dorsal Shark Fin & Y-Blade Aero (500 KM/H)'
+  },
+  {
+    id: 5,
+    type: 'daytona_sp3',
+    name: 'Ferrari Daytona SP3',
+    manufacturer: 'Ferrari',
+    paintColor: 0xdc2626, // Rosso Corsa Deep Racing Red
+    secondaryColor: 0x141416,
+    accentColor: 0xfacc15, // Giallo Modena
+    caliperColor: 0xfacc15,
+    roughness: 0.15,
+    metalness: 0.88,
+    description: '6.5L V12 Screamer • Rear Aerodynamic Strakes (500 KM/H)'
   }
 ];
 
@@ -203,50 +205,300 @@ export class Hypercar {
       metalness: 0.7
     });
 
-    // Custom aerodynamics based on selected hypercar
-    if (cfg.aeroWing) {
-      // High-downforce carbon GT Wing
-      const wing = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.04, 0.32), carbonMat);
-      wing.position.set(0, 0.88, -1.95);
-      wing.rotation.x = 0.08;
-      this.aeroGroup.add(wing);
+    const chromeMat = new THREE.MeshStandardMaterial({
+      color: 0xf1f5f9,
+      roughness: 0.08,
+      metalness: 0.95
+    });
 
-      // Wing upright struts
-      const strutL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.35, 0.18), carbonMat);
-      strutL.position.set(-0.45, 0.72, -1.92);
-      const strutR = strutL.clone();
-      strutR.position.x = 0.45;
-      this.aeroGroup.add(strutL, strutR);
+    const goldMat = new THREE.MeshStandardMaterial({
+      color: 0xfacc15,
+      roughness: 0.22,
+      metalness: 0.88
+    });
 
-      // Endplates
-      const endplateL = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.18, 0.36), accentMat);
-      endplateL.position.set(-0.86, 0.88, -1.95);
-      const endplateR = endplateL.clone();
-      endplateR.position.x = 0.86;
-      this.aeroGroup.add(endplateL, endplateR);
+    const cyanLedMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+    const whiteLedMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const titaniumMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.92, roughness: 0.18 });
+
+    // ========================================================
+    // 1. BUGATTI TOURBILLON (Image 1 reference)
+    // ========================================================
+    if (cfg.type === 'tourbillon' || cfg.id === 0) {
+      // Signature Bugatti Horseshoe Grille arch at front nose
+      const archOuter = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.038, 12, 24, Math.PI), chromeMat);
+      archOuter.rotation.x = Math.PI;
+      archOuter.position.set(0, 0.38, 2.19);
+      const postL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.22, 0.06), chromeMat);
+      postL.position.set(-0.24, 0.27, 2.19);
+      const postR = postL.clone();
+      postR.position.x = 0.24;
+      const meshBack = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.34, 0.04), new THREE.MeshStandardMaterial({ color: 0x09090b, roughness: 0.8 }));
+      meshBack.position.set(0, 0.29, 2.17);
+      const bugattiBadge = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.045, 0.02), new THREE.MeshBasicMaterial({ color: 0xdc2626 }));
+      bugattiBadge.position.set(0, 0.44, 2.21);
+      this.aeroGroup.add(archOuter, postL, postR, meshBack, bugattiBadge);
+
+      // Central Dorsal Spine Crease running from front hood over canopy
+      const dorsalHood = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.04, 1.2), accentMat);
+      dorsalHood.position.set(0, 0.52, 1.45);
+      dorsalHood.rotation.x = -0.12;
+      const dorsalRoof = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.04, 1.6), accentMat);
+      dorsalRoof.position.set(0, 0.96, -0.15);
+      this.aeroGroup.add(dorsalHood, dorsalRoof);
+
+      // 8-Element Jewel-Blade Horizontal Headlights (4 stacked cyan bars left & right)
+      for (let i = 0; i < 4; i++) {
+        const yOff = 0.41 + i * 0.032;
+        const bladeL = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.016, 0.08), cyanLedMat);
+        bladeL.position.set(-0.64, yOff, 2.12);
+        bladeL.rotation.z = -0.06;
+        const bladeR = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.016, 0.08), cyanLedMat);
+        bladeR.position.set(0.64, yOff, 2.12);
+        bladeR.rotation.z = 0.06;
+        this.aeroGroup.add(bladeL, bladeR);
+      }
+
+      // Front Carbon Splitter with Sculpted Outer Winglets
+      const frontSplitter = new THREE.Mesh(new THREE.BoxGeometry(1.98, 0.04, 0.52), carbonMat);
+      frontSplitter.position.set(0, 0.12, 2.14);
+      const wingletL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.16, 0.38), carbonMat);
+      wingletL.position.set(-0.97, 0.20, 2.12);
+      const wingletR = wingletL.clone();
+      wingletR.position.x = 0.97;
+      this.aeroGroup.add(frontSplitter, wingletL, wingletR);
+
+      // Lower Side Aero Skirts
+      const skirtL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.05, 3.4), carbonMat);
+      skirtL.position.set(-0.96, 0.14, 0);
+      const skirtR = skirtL.clone();
+      skirtR.position.x = 0.96;
+      this.aeroGroup.add(skirtL, skirtR);
+
+      // Rear Diffuser & Central Exhaust
+      const diffuser = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.12, 0.4), carbonMat);
+      diffuser.position.set(0, 0.16, -2.18);
+      this.aeroGroup.add(diffuser);
     }
 
-    if (cfg.sharkFin) {
-      // Huracán STO Central Dorsal Fin
-      const finGeo = new THREE.BoxGeometry(0.03, 0.28, 0.95);
-      const fin = new THREE.Mesh(finGeo, accentMat);
-      fin.position.set(0, 0.85, -1.25);
-      this.aeroGroup.add(fin);
+    // ========================================================
+    // 2. PAGANI HUAYRA ROADSTER BC (Image 2 reference)
+    // ========================================================
+    else if (cfg.type === 'huayra_bc' || cfg.id === 1) {
+      // Signature High Leaf-Stalk Side Wing Mirrors (mounted on front wheel arches)
+      const buildLeafMirror = (isLeft) => {
+        const mirrorGroup = new THREE.Group();
+        const sideMult = isLeft ? -1 : 1;
+        // Curved rising stalk
+        const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.022, 0.38, 8), carbonMat);
+        stalk.position.set(sideMult * 0.88, 0.62, 0.82);
+        stalk.rotation.z = sideMult * 0.48;
+        stalk.rotation.x = -0.15;
+        // Organic leaf-shaped teardrop mirror housing
+        const housing = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.22, 10), carbonMat);
+        housing.position.set(sideMult * 0.98, 0.76, 0.78);
+        housing.rotation.x = Math.PI / 2;
+        housing.rotation.z = sideMult * 0.3;
+        // Gold pinstripe rim on mirror
+        const goldRim = new THREE.Mesh(new THREE.TorusGeometry(0.052, 0.008, 6, 12), goldMat);
+        goldRim.position.set(sideMult * 0.98, 0.76, 0.72);
+        // Chrome mirror face
+        const mirrorFace = new THREE.Mesh(new THREE.CircleGeometry(0.048, 12), chromeMat);
+        mirrorFace.position.set(sideMult * 0.98, 0.76, 0.71);
+        mirrorFace.rotation.y = Math.PI;
+        mirrorGroup.add(stalk, housing, goldRim, mirrorFace);
+        return mirrorGroup;
+      };
+      this.aeroGroup.add(buildLeafMirror(true));
+      this.aeroGroup.add(buildLeafMirror(false));
+
+      // Teardrop Projector Dual Headlight Pods on Front Arches
+      [-1, 1].forEach(side => {
+        const podMat = carbonMat;
+        const p1 = new THREE.Mesh(new THREE.SphereGeometry(0.05, 12, 12), whiteLedMat);
+        p1.position.set(side * 0.66, 0.54, 1.88);
+        const p2 = new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 12), whiteLedMat);
+        p2.position.set(side * 0.73, 0.52, 1.70);
+        const podBase = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.05, 0.34), podMat);
+        podBase.position.set(side * 0.70, 0.51, 1.78);
+        podBase.rotation.y = side * 0.12;
+        this.aeroGroup.add(p1, p2, podBase);
+      });
+
+      // Roadster / Spyder Cockpit: Twin Aerodynamic Roll Hoops & Streamlined Nacelles
+      [-1, 1].forEach(side => {
+        const hoop = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.026, 8, 16, Math.PI), chromeMat);
+        hoop.rotation.x = Math.PI;
+        hoop.position.set(side * 0.38, 0.84, -0.66);
+        const fairing = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.7, 10), carbonMat);
+        fairing.position.set(side * 0.38, 0.76, -0.92);
+        fairing.rotation.x = -Math.PI / 2.3;
+        this.aeroGroup.add(hoop, fairing);
+      });
+
+      // Pagani Huayra BC Carbon GT Rear Wing with Swan-Neck Uprights & Gold Endplates
+      const bcWing = new THREE.Mesh(new THREE.BoxGeometry(1.88, 0.04, 0.34), carbonMat);
+      bcWing.position.set(0, 0.96, -1.95);
+      bcWing.rotation.x = 0.06;
+      // Swan-neck curved uprights
+      const swanL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.38, 0.22), carbonMat);
+      swanL.position.set(-0.38, 0.78, -1.92);
+      swanL.rotation.x = 0.12;
+      const swanR = swanL.clone();
+      swanR.position.x = 0.38;
+      // Carbon endplates with gold racing edges
+      const bcEndL = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.20, 0.40), carbonMat);
+      bcEndL.position.set(-0.94, 0.96, -1.95);
+      const goldEdgeL = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.21, 0.03), goldMat);
+      goldEdgeL.position.set(-0.94, 0.96, -1.75);
+      const bcEndR = bcEndL.clone();
+      bcEndR.position.x = 0.94;
+      const goldEdgeR = goldEdgeL.clone();
+      goldEdgeR.position.x = 0.94;
+      this.aeroGroup.add(bcWing, swanL, swanR, bcEndL, bcEndR, goldEdgeL, goldEdgeR);
+
+      // Signature Pagani Quad Titanium Central Exhaust Cluster (2x2 Cloverleaf)
+      const exhaustCluster = new THREE.Group();
+      const clusterHousing = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.12, 16), carbonMat);
+      clusterHousing.rotation.x = Math.PI / 2;
+      clusterHousing.position.set(0, 0.42, -2.24);
+      exhaustCluster.add(clusterHousing);
+      const pipeGeo = new THREE.CylinderGeometry(0.038, 0.038, 0.14, 12);
+      pipeGeo.rotateX(Math.PI / 2);
+      const pipeOffsets = [
+        { x: -0.046, y: 0.46 }, { x: 0.046, y: 0.46 },
+        { x: -0.046, y: 0.38 }, { x: 0.046, y: 0.38 }
+      ];
+      pipeOffsets.forEach(pos => {
+        const pipe = new THREE.Mesh(pipeGeo, titaniumMat);
+        pipe.position.set(pos.x, pos.y, -2.26);
+        exhaustCluster.add(pipe);
+      });
+      this.aeroGroup.add(exhaustCluster);
+
+      // Gold Racing Pinstripe Livery Bands
+      const stripeL = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.015, 3.6), goldMat);
+      stripeL.position.set(-0.18, 0.52, 0.2);
+      const stripeR = stripeL.clone();
+      stripeR.position.x = 0.18;
+      this.aeroGroup.add(stripeL, stripeR);
     }
 
-    if (cfg.twinApexFins) {
-      // Jesko Dual Top Aero Stabilizers
-      const fin1 = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.25, 0.55), accentMat);
-      fin1.position.set(-0.42, 0.84, -1.75);
+    // ========================================================
+    // 3. KOENIGSEGG JESKO ABSOLUT
+    // ========================================================
+    else if (cfg.type === 'jesko' || cfg.id === 2) {
+      // Twin Top Apex Vertical Stabilizer Fins
+      const fin1 = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.30, 0.65), accentMat);
+      fin1.position.set(-0.42, 0.85, -1.72);
       const fin2 = fin1.clone();
       fin2.position.x = 0.42;
       this.aeroGroup.add(fin1, fin2);
+
+      // Extended High-Speed Longtail Rear Aero Deck & Low-Drag Diffuser
+      const longtail = new THREE.Mesh(new THREE.BoxGeometry(1.65, 0.05, 0.68), carbonMat);
+      longtail.position.set(0, 0.52, -2.36);
+      const tailFinL = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.18, 0.65), accentMat);
+      tailFinL.position.set(-0.78, 0.56, -2.36);
+      const tailFinR = tailFinL.clone();
+      tailFinR.position.x = 0.78;
+      this.aeroGroup.add(longtail, tailFinL, tailFinR);
+
+      // Front Carbon Dive Planes / Canards
+      [-1, 1].forEach(side => {
+        const canard = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.02, 0.22), carbonMat);
+        canard.position.set(side * 0.90, 0.34, 2.05);
+        canard.rotation.z = side * 0.25;
+        canard.rotation.y = side * 0.15;
+        this.aeroGroup.add(canard);
+      });
+    }
+
+    // ========================================================
+    // 4. MCLAREN P1 GT
+    // ========================================================
+    else if (cfg.type === 'mclaren_p1' || cfg.id === 3) {
+      // Aerodynamic Roof Snorkel Air Scoop
+      const snorkel = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.14, 0.44), carbonMat);
+      snorkel.position.set(0, 1.06, -0.28);
+      const intakeHole = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.09, 0.04), new THREE.MeshStandardMaterial({ color: 0x050505 }));
+      intakeHole.position.set(0, 1.06, -0.06);
+      this.aeroGroup.add(snorkel, intakeHole);
+
+      // Active Curved DRS Rear Wing
+      const p1Wing = new THREE.Mesh(new THREE.BoxGeometry(1.78, 0.04, 0.32), carbonMat);
+      p1Wing.position.set(0, 0.95, -1.96);
+      p1Wing.rotation.x = 0.06;
+      const strutL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.40, 0.18), carbonMat);
+      strutL.position.set(-0.46, 0.75, -1.94);
+      const strutR = strutL.clone();
+      strutR.position.x = 0.46;
+      this.aeroGroup.add(p1Wing, strutL, strutR);
+
+      // Boomerang Front DRL Accents
+      [-1, 1].forEach(side => {
+        const boom = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.02, 0.14), whiteLedMat);
+        boom.position.set(side * 0.68, 0.46, 2.08);
+        this.aeroGroup.add(boom);
+      });
+    }
+
+    // ========================================================
+    // 5. LAMBORGHINI REVUELTO
+    // ========================================================
+    else if (cfg.type === 'revuelto' || cfg.id === 4) {
+      // Central Dorsal Shark Fin
+      const sharkFin = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.32, 0.98), accentMat);
+      sharkFin.position.set(0, 0.88, -1.25);
+      this.aeroGroup.add(sharkFin);
+
+      // Geometric Angular Y-Blade Front Splitter
+      const splitterBase = new THREE.Mesh(new THREE.BoxGeometry(1.94, 0.04, 0.48), carbonMat);
+      splitterBase.position.set(0, 0.12, 2.14);
+      const yBladeL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.18, 0.32), accentMat);
+      yBladeL.position.set(-0.95, 0.20, 2.12);
+      const yBladeR = yBladeL.clone();
+      yBladeR.position.x = 0.95;
+      this.aeroGroup.add(splitterBase, yBladeL, yBladeR);
+
+      // High-Mounted Dual Hexagonal Exhausts
+      [-0.14, 0.14].forEach(x => {
+        const hex = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.14, 6), titaniumMat);
+        hex.rotation.x = Math.PI / 2;
+        hex.position.set(x, 0.54, -2.22);
+        this.aeroGroup.add(hex);
+      });
+    }
+
+    // ========================================================
+    // 6. FERRARI DAYTONA SP3
+    // ========================================================
+    else if (cfg.type === 'daytona_sp3' || cfg.id === 5) {
+      // Iconic Horizontal Rear Aerodynamic Strakes (5 tiered strakes across full rear)
+      for (let s = 0; s < 5; s++) {
+        const strake = new THREE.Mesh(new THREE.BoxGeometry(1.74, 0.024, 0.14), carbonMat);
+        strake.position.set(0, 0.34 + s * 0.065, -2.20);
+        this.aeroGroup.add(strake);
+      }
+
+      // Front Low-Drag Blade Splitter
+      const fSplitter = new THREE.Mesh(new THREE.BoxGeometry(1.92, 0.035, 0.45), carbonMat);
+      fSplitter.position.set(0, 0.12, 2.14);
+      this.aeroGroup.add(fSplitter);
+
+      // High Twin Round Exhaust Outlets
+      [-0.18, 0.18].forEach(x => {
+        const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.12, 16), chromeMat);
+        tip.rotation.x = Math.PI / 2;
+        tip.position.set(x, 0.46, -2.24);
+        this.aeroGroup.add(tip);
+      });
     }
   }
 
   loadFerrariModel() {
     const loader = new GLTFLoader();
-    const rawBase = import.meta.env.BASE_URL || './';
+    const rawBase = (typeof import.meta !== 'undefined' && import.meta.env?.BASE_URL) ? import.meta.env.BASE_URL : './';
     const cleanBase = rawBase.endsWith('/') ? rawBase : `${rawBase}/`;
     const dracoPath = `${cleanBase}draco/`;
     const modelPath = `${cleanBase}ferrari.glb`;
@@ -650,13 +902,15 @@ export class Hypercar {
     // Apply acceleration force
     this.velocity.addScaledVector(forward, accelForce * dt);
 
-    // High-speed adaptive yaw response (prevents over-spinning at 500 km/h)
-    if (Math.abs(this.forwardSpeed) > 0.5) {
-      const turnDir = this.forwardSpeed >= 0 ? 1 : -1;
-      const speedNorm = Math.min(1.0, this.speed / 15.0);
-      const highSpeedDamp = 1.0 / (1.0 + (this.speed / 80.0) * 0.35);
-      const yawDelta = this.steerAngle * this.steerResponse * speedNorm * highSpeedDamp * turnDir * dt;
+    // High-speed adaptive yaw response with immediate low-speed recovery authority
+    if (Math.abs(this.forwardSpeed) > 0.05 || this.inputs.left || this.inputs.right) {
+      const turnDir = this.forwardSpeed >= -0.2 ? 1 : -1;
+      // Responsive steering factor: at low speeds / recovering from crash, retain 75% steering authority
+      const speedFactor = Math.max(0.75, Math.min(1.0, Math.abs(this.forwardSpeed) / 4.0));
+      const highSpeedDamp = 1.0 / (1.0 + (this.speed / 70.0) * 0.4);
+      const yawDelta = this.steerAngle * this.steerResponse * speedFactor * highSpeedDamp * turnDir * dt;
       this.heading += yawDelta;
+      this.heading = (this.heading + Math.PI * 2) % (Math.PI * 2);
     }
 
     // Aerodynamic lateral grip
@@ -668,34 +922,32 @@ export class Hypercar {
     this.position.addScaledVector(this.velocity, dt);
     this.position.y = 0.05;
 
-    // 4. Smooth, Natural Lane & Armco Boundary Handling (Zero Shake, Zero Jitter)
-    if (track) {
+    // 4. Smooth, Natural Lane & Armco Boundary Handling (Zero Shake, Zero Jitter, Zero Lag)
+    if (track && typeof track.getClosestTrackPoint === 'function') {
       const trackInfo = track.getClosestTrackPoint(this.position);
-      const maxAllowed = track.roadHalfWidth - 1.2;
+      const maxAllowed = track.roadHalfWidth - 0.8;
 
-      if (trackInfo.distFromCenter > maxAllowed) {
+      if (trackInfo && trackInfo.distFromCenter > maxAllowed) {
         const sign = Math.sign(trackInfo.lateralDist) || 1;
         const excess = trackInfo.distFromCenter - maxAllowed;
 
-        // Smooth position correction without jarring hard-snap
-        this.position.sub(trackInfo.normal.clone().multiplyScalar(sign * excess));
+        // Position clamp: gently place the car back inside the road boundary
+        this.position.x -= trackInfo.normal.x * sign * excess;
+        this.position.z -= trackInfo.normal.z * sign * excess;
         this.position.y = 0.05;
 
-        // Soft elastic rebound: cancel outward velocity smoothly
-        const outwardVel = this.velocity.dot(trackInfo.normal) * sign;
+        // Soft elastic rebound: reflect outward velocity smoothly (no violent stop or vibration)
+        const outwardVel = (this.velocity.x * trackInfo.normal.x + this.velocity.z * trackInfo.normal.z) * sign;
         if (outwardVel > 0) {
-          // Deflect gently with 0.1 restitution (smooth glide, NO violent stop or vibration)
-          this.velocity.sub(trackInfo.normal.clone().multiplyScalar(sign * outwardVel * 1.1));
+          this.velocity.x -= trackInfo.normal.x * sign * outwardVel * 1.05;
+          this.velocity.z -= trackInfo.normal.z * sign * outwardVel * 1.05;
         }
 
-        // Gentle barrier friction glide
-        this.velocity.multiplyScalar(0.994);
+        // Gentle barrier friction glide (maintain forward momentum)
+        this.velocity.multiplyScalar(0.995);
 
-        // Smooth tangent heading alignment (no sharp snapping)
-        const targetHeading = Math.atan2(trackInfo.tangent.x, trackInfo.tangent.z);
-        this.heading = THREE.MathUtils.lerp(this.heading, targetHeading, dt * 2.5);
-
-        if (Math.random() < 0.3) {
+        // Sparks on contact
+        if (Math.random() < 0.25) {
           this.emitSparks(this.position);
         }
       }
@@ -850,29 +1102,118 @@ export class RemoteHypercar {
     body.position.y = 0.38;
     carGroup.add(body);
 
-    // Aerodynamic Cockpit Greenhouse Canopy
-    const canopyGeo = new THREE.BoxGeometry(1.4, 0.42, 2.1);
-    const canopy = new THREE.Mesh(canopyGeo, glassMat);
-    canopy.position.set(0, 0.72, -0.2);
-    carGroup.add(canopy);
+    // Aerodynamic Cockpit Greenhouse Canopy (Roadster Spyder for Pagani, Monocoque for others)
+    if (cfg.type === 'huayra_bc' || cfg.id === 1) {
+      // Open Spyder cockpit with lower windscreen and twin chrome roll hoops
+      const windscreen = new THREE.Mesh(new THREE.BoxGeometry(1.36, 0.28, 0.8), glassMat);
+      windscreen.position.set(0, 0.65, 0.35);
+      windscreen.rotation.x = -0.3;
+      carGroup.add(windscreen);
+
+      [-1, 1].forEach(side => {
+        const hoop = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.024, 8, 14, Math.PI), new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.9 }));
+        hoop.rotation.x = Math.PI;
+        hoop.position.set(side * 0.36, 0.80, -0.65);
+        const nacelle = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.65, 8), carbonMat);
+        nacelle.position.set(side * 0.36, 0.72, -0.92);
+        nacelle.rotation.x = -Math.PI / 2.3;
+        carGroup.add(hoop, nacelle);
+      });
+
+      // Signature high leaf-stalk mirrors for opponent
+      [-1, 1].forEach(side => {
+        const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.02, 0.35, 6), carbonMat);
+        stalk.position.set(side * 0.86, 0.60, 0.82);
+        stalk.rotation.z = side * 0.48;
+        const housing = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.2, 8), carbonMat);
+        housing.position.set(side * 0.96, 0.74, 0.78);
+        housing.rotation.x = Math.PI / 2;
+        housing.rotation.z = side * 0.3;
+        carGroup.add(stalk, housing);
+      });
+
+      // BC Swan-neck Rear Wing
+      const wing = new THREE.Mesh(new THREE.BoxGeometry(1.86, 0.04, 0.32), carbonMat);
+      wing.position.set(0, 0.94, -1.94);
+      const strutL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.34, 0.18), carbonMat);
+      strutL.position.set(-0.38, 0.77, -1.92);
+      const strutR = strutL.clone();
+      strutR.position.x = 0.38;
+      carGroup.add(wing, strutL, strutR);
+
+      // Cloverleaf quad exhaust
+      const pipeGeo = new THREE.CylinderGeometry(0.035, 0.035, 0.12, 8);
+      pipeGeo.rotateX(Math.PI / 2);
+      const pipeMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.9 });
+      [[-0.045, 0.45], [0.045, 0.45], [-0.045, 0.37], [0.045, 0.37]].forEach(([x, y]) => {
+        const p = new THREE.Mesh(pipeGeo, pipeMat);
+        p.position.set(x, y, -2.22);
+        carGroup.add(p);
+      });
+    } else {
+      // Standard coupe canopy
+      const canopyGeo = new THREE.BoxGeometry(1.4, 0.42, 2.1);
+      const canopy = new THREE.Mesh(canopyGeo, glassMat);
+      canopy.position.set(0, 0.72, -0.2);
+      carGroup.add(canopy);
+
+      // Tourbillon Horseshoe Grille & Dorsal Spine
+      if (cfg.type === 'tourbillon' || cfg.id === 0) {
+        const horseshoe = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.035, 8, 16, Math.PI), new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.9 }));
+        horseshoe.rotation.x = Math.PI;
+        horseshoe.position.set(0, 0.36, 2.19);
+        const spine = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.04, 2.4), new THREE.MeshStandardMaterial({ color: cfg.accentColor, roughness: 0.2 }));
+        spine.position.set(0, 0.76, 0.1);
+        carGroup.add(horseshoe, spine);
+      }
+      // Jesko Twin Apex Fins & Longtail
+      else if (cfg.type === 'jesko' || cfg.id === 2) {
+        const fin1 = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.28, 0.6), new THREE.MeshStandardMaterial({ color: cfg.accentColor }));
+        fin1.position.set(-0.42, 0.84, -1.72);
+        const fin2 = fin1.clone();
+        fin2.position.x = 0.42;
+        const longtail = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.05, 0.6), carbonMat);
+        longtail.position.set(0, 0.50, -2.32);
+        carGroup.add(fin1, fin2, longtail);
+      }
+      // McLaren P1 Roof Snorkel & Curved Wing
+      else if (cfg.type === 'mclaren_p1' || cfg.id === 3) {
+        const snorkel = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.13, 0.4), carbonMat);
+        snorkel.position.set(0, 1.04, -0.28);
+        const wing = new THREE.Mesh(new THREE.BoxGeometry(1.76, 0.04, 0.3), carbonMat);
+        wing.position.set(0, 0.92, -1.94);
+        const strutL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.36, 0.16), carbonMat);
+        strutL.position.set(-0.45, 0.74, -1.92);
+        const strutR = strutL.clone();
+        strutR.position.x = 0.45;
+        carGroup.add(snorkel, wing, strutL, strutR);
+      }
+      // Lamborghini Revuelto Dorsal Fin
+      else if (cfg.type === 'revuelto' || cfg.id === 4) {
+        const fin = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.3, 0.95), new THREE.MeshStandardMaterial({ color: cfg.accentColor }));
+        fin.position.set(0, 0.86, -1.25);
+        const wing = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.04, 0.28), carbonMat);
+        wing.position.set(0, 0.88, -1.92);
+        const strutL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.32, 0.15), carbonMat);
+        strutL.position.set(-0.45, 0.72, -1.9);
+        const strutR = strutL.clone();
+        strutR.position.x = 0.45;
+        carGroup.add(fin, wing, strutL, strutR);
+      }
+      // Ferrari Daytona SP3 Rear Strakes
+      else if (cfg.type === 'daytona_sp3' || cfg.id === 5) {
+        for (let s = 0; s < 4; s++) {
+          const strake = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.025, 0.12), carbonMat);
+          strake.position.set(0, 0.36 + s * 0.07, -2.18);
+          carGroup.add(strake);
+        }
+      }
+    }
 
     // Front Splitter
     const splitter = new THREE.Mesh(new THREE.BoxGeometry(1.94, 0.06, 0.5), carbonMat);
     splitter.position.set(0, 0.16, 2.15);
     carGroup.add(splitter);
-
-    // Rear Wing
-    if (cfg.aeroWing) {
-      const wing = new THREE.Mesh(new THREE.BoxGeometry(1.76, 0.04, 0.3), carbonMat);
-      wing.position.set(0, 0.88, -1.92);
-      carGroup.add(wing);
-
-      const strutL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.32, 0.15), carbonMat);
-      strutL.position.set(-0.45, 0.72, -1.9);
-      const strutR = strutL.clone();
-      strutR.position.x = 0.45;
-      carGroup.add(strutL, strutR);
-    }
 
     // 4 Sport Wheels
     const tireGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.3, 16);
@@ -892,9 +1233,9 @@ export class RemoteHypercar {
       carGroup.add(wheel);
     });
 
-    // Headlights
-    const lightMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
-    const headlightL = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.08, 0.1), lightMat);
+    // Headlights (Jewel blades for Tourbillon, teardrop for Pagani, projector for others)
+    const lightMat = new THREE.MeshBasicMaterial({ color: (cfg.type === 'tourbillon' || cfg.id === 0) ? 0x7dd3fc : 0xffffff });
+    const headlightL = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.06, 0.1), lightMat);
     headlightL.position.set(-0.68, 0.44, 2.14);
     const headlightR = headlightL.clone();
     headlightR.position.x = 0.68;

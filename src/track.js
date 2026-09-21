@@ -18,21 +18,21 @@ export const MAP_CONFIGS = [
     id: 0,
     name: '7 Wonders Grand Tour',
     badge: 'WORLD WONDERS',
-    circuitLength: '1.8 KM',
+    circuitLength: '2.1 KM',
     splinePoints: [
-      new THREE.Vector3(0, 0, 180),        // Launch & Finish Straight (Tokyo)
-      new THREE.Vector3(130, 0, 160),      // Tokyo Strip
-      new THREE.Vector3(230, 0, 90),       // Pacific Ocean Highway
-      new THREE.Vector3(270, 0, -20),      // Tropical Beach Curve
-      new THREE.Vector3(220, 0, -140),     // Cyber Hyper-Tunnel Entrance
-      new THREE.Vector3(130, 0, -220),     // Cyber Tunnel Exit
-      new THREE.Vector3(0, 0, -250),       // Alpine Canyon Entry
-      new THREE.Vector3(-130, 0, -230),    // Alpine Summit Pass
-      new THREE.Vector3(-240, 0, -150),    // Giza Desert Dunes
-      new THREE.Vector3(-310, 0, -30),     // Great Sphinx
-      new THREE.Vector3(-280, 0, 90),      // Approach to Colosseum
-      new THREE.Vector3(-190, 0, 180),     // Roman Forum
-      new THREE.Vector3(-90, 0, 200)       // Olympic Victory Stadium Approach
+      new THREE.Vector3(0, 0, 235),        // Launch & Finish Straight (Tokyo Metropolis)
+      new THREE.Vector3(175, 0, 215),      // Tokyo Strip
+      new THREE.Vector3(305, 0, 130),      // Pacific Ocean Highway
+      new THREE.Vector3(355, 0, -25),      // Tropical Beach Curve
+      new THREE.Vector3(300, 0, -175),     // Cyber Hyper-Tunnel Entrance
+      new THREE.Vector3(175, 0, -280),     // Cyber Tunnel Exit
+      new THREE.Vector3(0, 0, -320),       // Alpine Canyon Entry
+      new THREE.Vector3(-175, 0, -290),    // Alpine Summit Pass
+      new THREE.Vector3(-305, 0, -185),    // Giza Desert Dunes
+      new THREE.Vector3(-375, 0, -30),     // Great Sphinx
+      new THREE.Vector3(-330, 0, 130),     // Approach to Colosseum
+      new THREE.Vector3(-215, 0, 225),     // Roman Forum
+      new THREE.Vector3(-95, 0, 245)       // Olympic Victory Stadium Approach
     ],
     checkpoints: [
       { id: 1, name: 'TOKYO METROPOLIS', wonder: 'WONDER 01: NEO-TOKYO SPEEDWAY', color: '#00f0ff', roadIdx: 50 },
@@ -961,7 +961,7 @@ export class Track {
     });
 
     // 1. The Monumental Roman Colosseum (3 Tiers of Travertine Arches with Ruined Stepped Profile)
-    const colCenter = new THREE.Vector3(-255, 0, 220);
+    const colCenter = new THREE.Vector3(-290, 0, 320);
     const colRadius = 75;
     const archCount = 36;
 

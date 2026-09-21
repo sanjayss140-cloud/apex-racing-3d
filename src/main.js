@@ -25,6 +25,7 @@ class ApexRacingGame {
     this.isCountingDown = false;
     this.topSpeedReached = 0;
     this.elapsedTime = 0;
+    this.inShowroom = false;
 
     this.remoteCars = new Map(); // peerId -> RemoteHypercar
     this.lastTelemetrySend = 0;
@@ -148,99 +149,57 @@ class ApexRacingGame {
 
   setupNetwork() {
     this.network = new NetworkManager(
-      (data) => this.handleNetworkMessage(data),
-      (players, isHost, mapIndex) => this.updateLobbyPlayerList(players, isHost, mapIndex)
+      (code) => {
+        const codeDisplay = document.getElementById('room-code-display');
+        if (codeDisplay) codeDisplay.textContent = code;
+      },
+      (players, selectedMap) => {
+        this.updateLobbyUI(players, selectedMap);
+      },
+      (data) => {
+        if (data.type === 'START_RACE') {
+          document.getElementById('lobby-modal').classList.remove('active');
+          document.getElementById('mode-selection-modal').classList.remove('active');
+          if (data.mapIndex !== undefined && data.mapIndex !== this.activeMapIndex) {
+            this.switchMap(data.mapIndex);
+          }
+          this.startRaceSequence();
+        } else if (data.type === 'TELEMETRY') {
+          const rCar = this.remoteCars.get(data.playerId);
+          if (rCar) {
+            rCar.updateTelemetry(data);
+          }
+        }
+      }
     );
-
-    this.network.init().then((myId) => {
-      console.log('Peer connected, ID:', myId);
-      const hostRoomId = this.network.createRoom('Player 1 (Host)', this.selectedCarIndex, this.activeMapIndex);
-
-      const codeDisplay = document.getElementById('room-code-display');
-      if (codeDisplay) {
-        codeDisplay.textContent = hostRoomId.replace('apex-', '').toUpperCase();
-      }
-
-      // Check URL search params for auto-join
-      const urlParams = new URLSearchParams(window.location.search);
-      const roomParam = urlParams.get('room');
-      if (roomParam) {
-        // Bypass landing mode selection, go straight to multiplayer join
-        document.getElementById('mode-selection-modal').classList.remove('active');
-        document.getElementById('lobby-modal').classList.add('active');
-        document.getElementById('tab-join').click();
-        const joinInput = document.getElementById('join-room-input');
-        if (joinInput) joinInput.value = roomParam.toUpperCase();
-        this.joinExistingRoom(roomParam);
-      }
-    });
   }
 
-  handleNetworkMessage(data) {
-    switch (data.type) {
-      case 'START_RACE': {
-        this.gameMode = 'multiplayer';
-        if (data.mapIndex !== undefined && data.mapIndex !== this.activeMapIndex) {
-          this.switchMap(data.mapIndex);
-        }
-        document.getElementById('mode-selection-modal').classList.remove('active');
-        document.getElementById('lobby-modal').classList.remove('active');
-        this.startRaceSequence();
-        break;
-      }
-
-      case 'TELEMETRY': {
-        const rc = this.remoteCars.get(data.playerId);
-        if (rc) {
-          rc.updateTelemetry(data);
-        }
-        break;
-      }
-
-      case 'PLAYER_DISCONNECTED': {
-        const rc = this.remoteCars.get(data.peerId);
-        if (rc) {
-          rc.destroy();
-          this.remoteCars.delete(data.peerId);
-        }
-        break;
-      }
-
-      case 'RACE_FINISH': {
-        if (this.raceFinished) {
-          this.refreshPodiumResults();
-        }
-        break;
-      }
-    }
-  }
-
-  updateLobbyPlayerList(players, isHost, selectedMap) {
+  updateLobbyUI(players, selectedMap) {
     const rosterEl = document.getElementById('player-roster');
     const countEl = document.getElementById('player-count');
-    if (countEl) countEl.textContent = players.length;
+    if (!rosterEl) return;
 
-    if (rosterEl) {
-      rosterEl.innerHTML = '';
-      players.forEach((p) => {
-        const carCfg = CAR_CONFIGS[p.carIndex] || CAR_CONFIGS[0];
-        const isMe = p.id === this.network.myPeerId;
-        const div = document.createElement('div');
-        div.className = `roster-item ${isMe ? 'me' : ''}`;
-        div.innerHTML = `
-          <span class="player-status-icon">${p.isHost ? '👑' : '🏎️'}</span>
-          <span class="player-name">${p.name} ${isMe ? '(You)' : ''}</span>
-          <span class="player-car-tag">${carCfg.name.split(' ')[0]}</span>
-        `;
-        rosterEl.appendChild(div);
+    rosterEl.innerHTML = '';
+    if (countEl) countEl.textContent = players.size;
 
-        // Manage Remote Cars in 3D scene
-        if (!isMe && !this.remoteCars.has(p.id)) {
-          const remoteCar = new RemoteHypercar(this.scene, p);
-          this.remoteCars.set(p.id, remoteCar);
-        }
-      });
-    }
+    players.forEach((p) => {
+      const isMe = p.id === this.network.myPeerId;
+      const carCfg = CAR_CONFIGS[p.carIndex] || CAR_CONFIGS[0];
+      const div = document.createElement('div');
+      div.className = `roster-item ${isMe ? 'me' : ''}`;
+      div.innerHTML = `
+        <span class="player-status-icon">${p.isHost ? '👑' : '🏎️'}</span>
+        <span class="player-name">${p.name} ${isMe ? '(You)' : ''}</span>
+        <span class="player-car-tag">${carCfg.name.split(' ')[0]}</span>
+      `;
+      rosterEl.appendChild(div);
+
+      // Manage Remote Cars in 3D scene
+      if (!isMe && !this.remoteCars.has(p.id)) {
+        const remoteCar = new RemoteHypercar(this.scene, p);
+        this.remoteCars.set(p.id, remoteCar);
+      }
+    });
 
     if (selectedMap !== undefined && selectedMap !== this.activeMapIndex) {
       this.switchMap(selectedMap);
@@ -267,10 +226,14 @@ class ApexRacingGame {
   }
 
   startRaceSequence() {
+    this.inShowroom = false;
     this.isCountingDown = true;
     this.raceFinished = false;
     this.activeCheckpoint = 1;
     this.topSpeedReached = 0;
+    this.elapsedTime = 0;
+    this.raceStartTime = null;
+    this.hud.updateTimer(0);
     this.resetCarToStart();
     this.track.highlightCheckpoint(this.activeCheckpoint);
 
@@ -280,6 +243,7 @@ class ApexRacingGame {
     this.car.onModelReady(() => {
       this.hud.startCountdown(() => {
         this.isCountingDown = false;
+        this.elapsedTime = 0;
         this.raceStartTime = performance.now();
       });
     });
@@ -346,29 +310,79 @@ class ApexRacingGame {
     window.addEventListener('pointerdown', () => audio.ensureContext(), { once: true });
   }
 
+  openCarShowroom(confirmLabel = '🚀 START RACE') {
+    this.inShowroom = true;
+    this.showroomAngle = 0;
+    const garageModal = document.getElementById('garage-selection-modal');
+    const confirmBtn = document.getElementById('btn-confirm-garage');
+    if (confirmBtn) confirmBtn.textContent = confirmLabel;
+    if (garageModal) garageModal.classList.add('active');
+  }
+
   setupUI() {
+    // 0. Grand Hollywood Entrance Screen
+    const btnEnterHollywood = document.getElementById('btn-enter-hollywood');
+    if (btnEnterHollywood) {
+      btnEnterHollywood.addEventListener('click', () => {
+        audio.ensureContext();
+        document.getElementById('hollywood-entrance-modal').classList.add('hidden');
+        document.getElementById('mode-selection-modal').classList.add('active');
+      });
+    }
+
     // 1. Landing Mode Selection Buttons
     document.getElementById('btn-start-solo-tour').addEventListener('click', () => {
       this.gameMode = 'solo';
       this.soloTourStage = 0;
       this.soloTourTimes = [null, null, null];
       document.getElementById('mode-selection-modal').classList.remove('active');
-      this.switchMap(0);
-      this.startRaceSequence();
+      this.openCarShowroom('🚀 START 3-MAP TOUR');
     });
 
     document.getElementById('btn-open-multi-lobby').addEventListener('click', () => {
       this.gameMode = 'multiplayer';
       document.getElementById('mode-selection-modal').classList.remove('active');
-      document.getElementById('lobby-modal').classList.add('active');
+      this.openCarShowroom('👥 PROCEED TO LOBBY ❯');
     });
+
+    // 2. Dedicated Visual Car Showroom Actions
+    const btnConfirmGarage = document.getElementById('btn-confirm-garage');
+    if (btnConfirmGarage) {
+      btnConfirmGarage.addEventListener('click', () => {
+        document.getElementById('garage-selection-modal').classList.remove('active');
+        this.inShowroom = false;
+        if (this.gameMode === 'solo') {
+          this.soloTourStage = 0;
+          this.soloTourTimes = [null, null, null];
+          this.switchMap(0);
+          this.startRaceSequence();
+        } else {
+          document.getElementById('lobby-modal').classList.add('active');
+        }
+      });
+    }
+
+    const btnBackGarage = document.getElementById('btn-back-from-garage');
+    if (btnBackGarage) {
+      btnBackGarage.addEventListener('click', () => {
+        document.getElementById('garage-selection-modal').classList.remove('active');
+        this.inShowroom = false;
+        document.getElementById('mode-selection-modal').classList.add('active');
+      });
+    }
 
     // Top Bar Mode & Lobby Buttons
     document.getElementById('open-mode-btn').addEventListener('click', () => {
+      this.inShowroom = false;
+      document.getElementById('garage-selection-modal').classList.remove('active');
+      document.getElementById('lobby-modal').classList.remove('active');
       document.getElementById('mode-selection-modal').classList.add('active');
     });
 
     document.getElementById('open-lobby-btn').addEventListener('click', () => {
+      this.inShowroom = false;
+      document.getElementById('garage-selection-modal').classList.remove('active');
+      document.getElementById('mode-selection-modal').classList.remove('active');
       document.getElementById('lobby-modal').classList.add('active');
     });
 
@@ -747,6 +761,21 @@ class ApexRacingGame {
   }
 
   updateCamera(dt) {
+    if (this.inShowroom) {
+      this.showroomAngle = (this.showroomAngle || 0) + dt * 0.55;
+      const dist = 6.4;
+      const height = 1.9;
+      const cx = this.car.position.x + Math.sin(this.showroomAngle) * dist;
+      const cz = this.car.position.z + Math.cos(this.showroomAngle) * dist;
+      const cy = this.car.position.y + height;
+      this.camera.position.set(cx, cy, cz);
+      this.cameraTarget.copy(this.car.position).add(new THREE.Vector3(0, 0.7, 0));
+      this.camera.lookAt(this.cameraTarget);
+      this.camera.fov = 50;
+      this.camera.updateProjectionMatrix();
+      return;
+    }
+
     const carPos = this.car.position;
     const forwardVec = new THREE.Vector3(Math.sin(this.car.heading), 0, Math.cos(this.car.heading));
     const speed = this.car.speed;

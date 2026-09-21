@@ -1368,3 +1368,173 @@ body, html {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* ===================================================
+   HOLLYWOOD CINEMATIC ENTRANCE SCREEN
+   =================================================== */
+.hollywood-modal {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(15, 23, 42, 0.94) 0%, rgba(3, 7, 18, 0.98) 100%);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+  visibility: visible;
+  transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.hollywood-modal.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: scale(1.08);
+}
+
+.hollywood-card {
+  text-align: center;
+  position: relative;
+  z-index: 2;
+  max-width: 820px;
+  padding: 40px 30px;
+}
+
+.hollywood-lens-flare {
+  position: absolute;
+  width: 650px;
+  height: 2px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(90deg, transparent 0%, rgba(0, 240, 255, 0.8) 50%, transparent 100%);
+  box-shadow: 0 0 35px #00f0ff, 0 0 70px #2563eb;
+  pointer-events: none;
+  animation: flarePulse 3.5s infinite ease-in-out;
+}
+
+@keyframes flarePulse {
+  0%, 100% { opacity: 0.6; transform: translate(-50%, -50%) scaleX(0.9); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scaleX(1.15); }
+}
+
+.hollywood-badge {
+  display: inline-block;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.35em;
+  color: #facc15;
+  text-shadow: 0 0 16px rgba(250, 204, 21, 0.7);
+  margin-bottom: 14px;
+  text-transform: uppercase;
+}
+
+.hollywood-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 4.4rem;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 0.95;
+  text-shadow: 0 0 30px rgba(0, 240, 255, 0.6), 0 0 70px rgba(0, 112, 255, 0.4);
+  margin-bottom: 14px;
+}
+
+.hollywood-title span.title-3d {
+  background: linear-gradient(180deg, #00f0ff 0%, #3b82f6 50%, #1e3a8a 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 25px rgba(0, 240, 255, 0.8));
+}
+
+.hollywood-subtitle {
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: #94a3b8;
+  margin-bottom: 36px;
+  text-transform: uppercase;
+}
+
+.btn-hollywood-enter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 48px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #00f0ff 0%, #2563eb 100%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  color: #000000;
+  font-family: 'Syne', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 0 35px rgba(0, 240, 255, 0.6), 0 0 70px rgba(37, 99, 235, 0.4);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: enterGlow 2s infinite alternate;
+}
+
+@keyframes enterGlow {
+  0% { transform: scale(1); box-shadow: 0 0 25px rgba(0, 240, 255, 0.5); }
+  100% { transform: scale(1.04); box-shadow: 0 0 45px rgba(0, 240, 255, 0.9), 0 0 80px rgba(37, 99, 235, 0.6); }
+}
+
+.btn-hollywood-enter:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 50px rgba(0, 240, 255, 0.95);
+}
+
+/* ===================================================
+   VISUAL CAR SELECTION SHOWROOM MODAL
+   =================================================== */
+.garage-selection-modal {
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 7, 16, 0.88);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  z-index: 55;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.garage-selection-modal.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.garage-card {
+  width: 94%;
+  max-width: 920px;
+  max-height: 92vh;
+  overflow-y: auto;
+  border-radius: 24px;
+  padding: 24px 30px;
+  border: 1px solid rgba(0, 240, 255, 0.4);
+  box-shadow: 0 0 60px rgba(0, 240, 255, 0.25);
+  scrollbar-width: thin;
+  scrollbar-color: #00f0ff rgba(15, 23, 42, 0.6);
+}
+
+.showroom-notice {
+  background: rgba(0, 240, 255, 0.12);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  border-radius: 10px;
+  padding: 8px 14px;
+  text-align: center;
+  margin-bottom: 16px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #38bdf8;
+  letter-spacing: 0.08em;
+}

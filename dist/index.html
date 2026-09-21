@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>APEX RUSH 3D — 500 KM/H Multiplayer Hypercar Circuit</title>
-    <script type="module" crossorigin src="./assets/index-C0iqk2zL.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-p-_t2jvk.css">
+    <script type="module" crossorigin src="./assets/index-DLcsfOe6.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-B5ZHccVk.css">
   </head>
   <body>
     <!-- WebGL Canvas Container -->
@@ -96,89 +96,127 @@
     </div>
 
     <!-- ========================================================
-         LANDING MODE SELECTION MODAL (Solo 3-Map vs Multiplayer)
+         SCREEN 0: GRAND HOLLYWOOD-LEVEL CINEMATIC ENTRANCE
          ======================================================== -->
-    <div id="mode-selection-modal" class="mode-selection-modal active">
+    <div id="hollywood-entrance-modal" class="hollywood-modal">
+      <div class="hollywood-lens-flare"></div>
+      <div class="hollywood-card">
+        <div class="hollywood-badge">🏆 WORLD HYPERCAR GRAND PRIX</div>
+        <h1 class="hollywood-title">APEX RUSH <span class="title-3d">3D</span></h1>
+        <p class="hollywood-subtitle">500+ KM/H • 3 TRACKS • MULTIPLAYER</p>
+        <button id="btn-enter-hollywood" class="btn-hollywood-enter">
+          ⚡ ENTER GAME ❯
+        </button>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         BANNER 1: SIMPLIFIED SELECT GAME MODE MODAL
+         ======================================================== -->
+    <div id="mode-selection-modal" class="mode-selection-modal">
       <div class="mode-card glass">
         <div class="lobby-header">
-          <div class="lobby-badge">WELCOME TO APEX RUSH 3D</div>
           <h1 class="lobby-title">SELECT <span>GAME MODE</span></h1>
-          <p class="lobby-subtitle">Drive at 500+ KM/H across 3 grand circuits or race with friends</p>
+          <p class="lobby-subtitle">Solo 3-Map Championship or Live Multiplayer with Friends</p>
         </div>
 
         <div class="mode-choices-grid">
-          <!-- Solo Mode: Continuous 3-Map Campaign -->
+          <!-- Solo Mode -->
           <div id="choose-solo-card" class="mode-choice-card active-choice">
             <div class="choice-icon">🏆</div>
             <div class="choice-title">SOLO GRAND PRIX</div>
-            <div class="choice-tag">CONTINUOUS 3-MAP TOUR</div>
+            <div class="choice-tag">3 MAPS CONTINUOUS TOUR</div>
             <div class="choice-desc">
-              Race through all 3 circuits continuously: <strong>7 Wonders</strong> ➔ <strong>Neo-Tokyo Midnight</strong> ➔ <strong>Volcanic Inferno</strong>. Auto-transitions map-to-map and crowns you on the final 3-map cumulative Championship Podium!
+              7 Wonders • Neo-Tokyo • Volcanic Inferno
             </div>
             <button id="btn-start-solo-tour" class="btn-choose-mode btn-mode-solo">
-              🚀 START 3-MAP GRAND PRIX
+              ▶ SELECT CAR & RACE
             </button>
           </div>
 
-          <!-- Multiplayer Mode: Room creation & link sharing -->
+          <!-- Multiplayer Mode -->
           <div id="choose-multi-card" class="mode-choice-card">
             <div class="choice-icon">🌐</div>
             <div class="choice-title">PLAY WITH FRIENDS</div>
-            <div class="choice-tag">MULTIPLAYER (UP TO 6 PLAYERS)</div>
+            <div class="choice-tag">MULTIPLAYER (UP TO 6)</div>
             <div class="choice-desc">
-              Host a room and share your 1-click invite link or room code with up to 5 friends! Join via link or code entry, pick any of the 3 maps, and race live peer-to-peer!
+              Host Room • Share Code / Link • Live Race
             </div>
             <button id="btn-open-multi-lobby" class="btn-choose-mode btn-mode-multi">
-              👥 ENTER MULTIPLAYER LOBBY
+              ▶ CHOOSE CAR & JOIN LOBBY
             </button>
           </div>
         </div>
+      </div>
+    </div>
 
-        <!-- Hypercar Garage Selector -->
-        <div class="section-title" style="margin-top: 18px;">CHOOSE YOUR CHAMPIONSHIP HYPERCAR (6 CHOICES • IDENTICAL 500 KM/H SPECS)</div>
-        <div class="car-grid" id="landing-car-grid">
+    <!-- ========================================================
+         BANNER 2: DEDICATED VISUAL CAR SELECTION SHOWROOM
+         ======================================================== -->
+    <div id="garage-selection-modal" class="garage-selection-modal">
+      <div class="garage-card glass">
+        <div class="lobby-header">
+          <h1 class="lobby-title">SELECT YOUR <span>HYPERCAR</span></h1>
+          <p class="lobby-subtitle">All cars have equal 500 KM/H speed & handling</p>
+        </div>
+
+        <div class="showroom-notice">
+          <span>✨ 3D SHOWROOM ACTIVE: Inspect & rotate your car in real-time</span>
+        </div>
+
+        <!-- 6 Visual Hypercar Cards -->
+        <div class="car-grid" id="showroom-car-grid">
           <div class="car-card active" data-car="0">
             <div class="car-color-dot" style="background: #7bb6d6;"></div>
             <div class="car-info">
-              <div class="car-name">Bugatti Tourbillon Bolide</div>
-              <div class="car-spec">500 KM/H • Curved GT Wing & Dorsal Fin</div>
+              <div class="car-name">Bugatti Bolide</div>
+              <div class="car-spec">500 KM/H • Ice Blue</div>
             </div>
           </div>
           <div class="car-card" data-car="1">
             <div class="car-color-dot" style="background: #420c15;"></div>
             <div class="car-info">
-              <div class="car-name">Pagani Huayra BC</div>
-              <div class="car-spec">500 KM/H • High Quad Rocket & Roll Hoops</div>
+              <div class="car-name">Pagani Huayra</div>
+              <div class="car-spec">500 KM/H • Cherry Red</div>
             </div>
           </div>
           <div class="car-card" data-car="2">
             <div class="car-color-dot" style="background: #3b332d;"></div>
             <div class="car-info">
-              <div class="car-name">Apollo Intensa Emozione</div>
-              <div class="car-spec">500 KM/H • Trident Batwing & Diffuser</div>
+              <div class="car-name">Apollo IE</div>
+              <div class="car-spec">500 KM/H • Bronze Carbon</div>
             </div>
           </div>
           <div class="car-card" data-car="3">
             <div class="car-color-dot" style="background: #f8fafc;"></div>
             <div class="car-info">
               <div class="car-name">Jesko Absolut</div>
-              <div class="car-spec">500 KM/H • Twin Apex Fins & Longtail</div>
+              <div class="car-spec">500 KM/H • Arctic White</div>
             </div>
           </div>
           <div class="car-card" data-car="4">
             <div class="car-color-dot" style="background: #ea580c;"></div>
             <div class="car-info">
-              <div class="car-name">McLaren Solus GT</div>
-              <div class="car-spec">500 KM/H • Roof Snorkel & GT3 Wing</div>
+              <div class="car-name">McLaren Solus</div>
+              <div class="car-spec">500 KM/H • Papaya Orange</div>
             </div>
           </div>
           <div class="car-card" data-car="5">
             <div class="car-color-dot" style="background: #dc2626;"></div>
             <div class="car-info">
-              <div class="car-name">Ferrari Daytona SP3</div>
-              <div class="car-spec">500 KM/H • Rear Strakes & Cyber Lightbar</div>
+              <div class="car-name">Ferrari Daytona</div>
+              <div class="car-spec">500 KM/H • Rosso Corsa</div>
             </div>
           </div>
+        </div>
+
+        <div class="garage-action-row" style="margin-top: 16px; display: flex; gap: 12px;">
+          <button id="btn-confirm-garage" class="btn-start-race" style="flex: 2;">
+            🚀 START RACE
+          </button>
+          <button id="btn-back-from-garage" class="btn-solo-race" style="flex: 1;">
+            ◀ BACK
+          </button>
         </div>
       </div>
     </div>
@@ -208,17 +246,17 @@
             <div class="map-card active" data-map="0">
               <div class="map-tag">MAP 1</div>
               <div class="map-name">🏛️ 7 Wonders Grand Tour</div>
-              <div class="map-desc">Pyramids of Giza, Roman Colosseum, Tokyo Tower & Alpine Matterhorn</div>
+              <div class="map-desc">2.1 KM • Pyramids • Colosseum • Alps</div>
             </div>
             <div class="map-card" data-map="1">
               <div class="map-tag">MAP 2</div>
               <div class="map-name">🌃 Neo-Tokyo Midnight</div>
-              <div class="map-desc">Cyber Neon Skyscrapers, Akihabara & Tokyo Bay Underwater Glass Tunnel</div>
+              <div class="map-desc">1.7 KM • Cyber Neon • Tokyo Bay Tube</div>
             </div>
             <div class="map-card" data-map="2">
               <div class="map-tag">MAP 3</div>
               <div class="map-name">🌋 Volcanic Inferno Canyon</div>
-              <div class="map-desc">Active Magma Caldera, Obsidian Basalt Bridges & Glowing Lava Tubes</div>
+              <div class="map-desc">1.8 KM • Lava Caldera • Obsidian Bridges</div>
             </div>
           </div>
 

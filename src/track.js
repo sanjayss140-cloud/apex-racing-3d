@@ -246,22 +246,23 @@ export class Track {
     desertBase.receiveShadow = true;
     this.addToTrack(desertBase);
 
-    // Rolling 3D Sand Dunes framing the desert roadway
+    // Rolling 3D Sand Dunes framing the desert roadway (Safely clear of the track)
     const duneMat = new THREE.MeshStandardMaterial({
       color: 0xb45309,
       roughness: 0.95,
       metalness: 0.02
     });
     const duneCoords = [
-      { x: -360, z: -140, rx: 70, rz: 110, h: 18 },
-      { x: -440, z: -60,  rx: 85, rz: 130, h: 22 },
-      { x: -330, z: 120,  rx: 65, rz: 95,  h: 15 },
-      { x: -420, z: 80,   rx: 80, rz: 120, h: 20 },
-      { x: -220, z: -110, rx: 45, rz: 70,  h: 12 }
+      { x: -480, z: -160, rx: 50, rz: 60, h: 16 },
+      { x: -520, z: -60,  rx: 55, rz: 70, h: 18 },
+      { x: -460, z: 160,  rx: 45, rz: 55, h: 14 },
+      { x: -500, z: 90,   rx: 50, rz: 60, h: 16 },
+      { x: -490, z: -250, rx: 45, rz: 50, h: 14 }
     ];
     duneCoords.forEach(d => {
       const dist = this.getDistToTrack(d.x, d.z);
-      if (dist > this.roadHalfWidth + 16.0) {
+      const maxR = Math.max(d.rx, d.rz);
+      if (dist > maxR + this.roadHalfWidth + 15.0) {
         const dune = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), duneMat);
         dune.scale.set(d.rx, d.h, d.rz);
         dune.position.set(d.x, 0, d.z);
@@ -682,15 +683,15 @@ export class Track {
       metalness: 0.1
     });
 
-    // 16 Multi-Faceted Alpine Canyon Massifs with Craggy Ridges & Snowfields
+    // 16 Multi-Faceted Alpine Canyon Massifs with Craggy Ridges & Snowfields (Guaranteed Clear of Circuit)
     const canyonMountains = [
-      { x: 55,   z: -195, h: 105, r: 48, segs: 6 },
+      { x: 120,  z: -320, h: 105, r: 42, segs: 6 },
       { x: -95,  z: -70,  h: 110, r: 50, segs: 7 },
-      { x: -10,  z: -255, h: 120, r: 54, segs: 6 },
+      { x: 20,   z: -340, h: 120, r: 48, segs: 6 },
       { x: -130, z: -98,  h: 115, r: 52, segs: 7 },
-      { x: -90,  z: -305, h: 135, r: 58, segs: 6 },
+      { x: -90,  z: -345, h: 135, r: 52, segs: 6 },
       { x: -140, z: -125, h: 95,  r: 42, segs: 6 },
-      { x: -205, z: -295, h: 110, r: 48, segs: 7 },
+      { x: -205, z: -330, h: 110, r: 48, segs: 7 },
       { x: -150, z: -115, h: 105, r: 46, segs: 6 },
       { x: -280, z: -255, h: 125, r: 52, segs: 7 },
       { x: -165, z: -98,  h: 120, r: 50, segs: 6 },
@@ -699,21 +700,24 @@ export class Track {
       { x: -350, z: -120, h: 105, r: 48, segs: 6 },
       { x: -192, z: -58,  h: 105, r: 46, segs: 7 },
       // Iconic Matterhorn Peak (Massive 155m hooked summit overlooking the canyon)
-      { x: -210, z: -325, h: 155, r: 66, segs: 5 },
-      { x: -295, z: -310, h: 150, r: 64, segs: 5 }
+      { x: -210, z: -355, h: 155, r: 60, segs: 5 },
+      { x: -295, z: -330, h: 150, r: 60, segs: 5 }
     ];
 
     canyonMountains.forEach((cp) => {
-      const mountain = new THREE.Mesh(new THREE.ConeGeometry(cp.r, cp.h, cp.segs), rockMat);
-      mountain.position.set(cp.x, cp.h / 2, cp.z);
-      mountain.castShadow = true;
-      mountain.receiveShadow = true;
-      this.addToTrack(mountain);
+      const dist = this.getDistToTrack(cp.x, cp.z);
+      if (dist > cp.r + this.roadHalfWidth + 12.0) {
+        const mountain = new THREE.Mesh(new THREE.ConeGeometry(cp.r, cp.h, cp.segs), rockMat);
+        mountain.position.set(cp.x, cp.h / 2, cp.z);
+        mountain.castShadow = true;
+        mountain.receiveShadow = true;
+        this.addToTrack(mountain);
 
-      // Layered Alpine Snowcap with Glacial Gullies
-      const snow = new THREE.Mesh(new THREE.ConeGeometry(cp.r * 0.44, cp.h * 0.32, cp.segs), snowMat);
-      snow.position.set(cp.x, cp.h * 0.84, cp.z);
-      this.addToTrack(snow);
+        // Layered Alpine Snowcap with Glacial Gullies
+        const snow = new THREE.Mesh(new THREE.ConeGeometry(cp.r * 0.44, cp.h * 0.32, cp.segs), snowMat);
+        snow.position.set(cp.x, cp.h * 0.84, cp.z);
+        this.addToTrack(snow);
+      }
     });
 
     // Swiss Alpine Wooden Chalets with Shingle Roofs & Illuminated Windows
@@ -722,25 +726,27 @@ export class Track {
     const windowGlow = new THREE.MeshBasicMaterial({ color: 0xfde047 });
 
     const chaletCoords = [
-      { x: -110, z: -275, rot: 0.3 },
-      { x: -175, z: -260, rot: -0.4 }
+      { x: -110, z: -295, rot: 0.3 },
+      { x: -175, z: -285, rot: -0.4 }
     ];
 
     chaletCoords.forEach(cc => {
-      const chaletGroup = new THREE.Group();
-      chaletGroup.position.set(cc.x, 0, cc.z);
-      chaletGroup.rotation.y = cc.rot;
+      if (this.getDistToTrack(cc.x, cc.z) > this.roadHalfWidth + 15.0) {
+        const chaletGroup = new THREE.Group();
+        chaletGroup.position.set(cc.x, 0, cc.z);
+        chaletGroup.rotation.y = cc.rot;
 
-      const chaletBody = new THREE.Mesh(new THREE.BoxGeometry(18, 10, 14), woodMat);
-      chaletBody.position.y = 5.0;
-      const roof = new THREE.Mesh(new THREE.ConeGeometry(15, 9, 4), roofMat);
-      roof.position.y = 13.5;
-      roof.rotation.y = Math.PI / 4;
-      const chaletWin = new THREE.Mesh(new THREE.BoxGeometry(18.4, 3.0, 3.2), windowGlow);
-      chaletWin.position.y = 5.5;
+        const chaletBody = new THREE.Mesh(new THREE.BoxGeometry(18, 10, 14), woodMat);
+        chaletBody.position.y = 5.0;
+        const roof = new THREE.Mesh(new THREE.ConeGeometry(15, 9, 4), roofMat);
+        roof.position.y = 13.5;
+        roof.rotation.y = Math.PI / 4;
+        const chaletWin = new THREE.Mesh(new THREE.BoxGeometry(18.4, 3.0, 3.2), windowGlow);
+        chaletWin.position.y = 5.5;
 
-      chaletGroup.add(chaletBody, roof, chaletWin);
-      this.addToTrack(chaletGroup);
+        chaletGroup.add(chaletBody, roof, chaletWin);
+        this.addToTrack(chaletGroup);
+      }
     });
 
     // Dense Evergreen Pine Forest (Clustered safely outside the Armco barriers)
@@ -955,8 +961,8 @@ export class Track {
     });
 
     // 1. The Monumental Roman Colosseum (3 Tiers of Travertine Arches with Ruined Stepped Profile)
-    const colCenter = new THREE.Vector3(-235, 0, 195);
-    const colRadius = 78;
+    const colCenter = new THREE.Vector3(-255, 0, 220);
+    const colRadius = 75;
     const archCount = 36;
 
     const pillarGeo1 = new THREE.BoxGeometry(4.2, 12, 4.2);

@@ -477,19 +477,19 @@ export function buildVolcanicInfernoMap(track) {
     metalness: 0.1
   });
 
-  // Massive volcanic peaks
+  // Massive volcanic peaks (Safely towering in the background)
   const peaks = [
-    { x: -350, z: -200, r: 85, h: 140 },
-    { x: -280, z: -270, r: 95, h: 170 },
-    { x: -160, z: -280, r: 80, h: 130 },
-    { x: 260, z: -220,  r: 90, h: 155 },
-    { x: 340, z: -100,  r: 100, h: 165 },
-    { x: 300, z: 120,   r: 85, h: 145 },
-    { x: 180, z: 280,   r: 75, h: 125 }
+    { x: -440, z: -200, r: 85, h: 140 },
+    { x: -380, z: -350, r: 95, h: 170 },
+    { x: -160, z: -380, r: 80, h: 130 },
+    { x: 380,  z: -260, r: 90, h: 155 },
+    { x: 440,  z: -100, r: 100, h: 165 },
+    { x: 420,  z: 160,  r: 85, h: 145 },
+    { x: 180,  z: 380,  r: 75, h: 125 }
   ];
 
   peaks.forEach(p => {
-    if (track.getDistToTrack(p.x, p.z) > track.roadHalfWidth + 28.0) {
+    if (track.getDistToTrack(p.x, p.z) > p.r + track.roadHalfWidth + 12.0) {
       const cone = new THREE.Mesh(new THREE.ConeGeometry(p.r, p.h, 7), obsidianMat);
       cone.position.set(p.x, p.h / 2, p.z);
       track.addToTrack(cone);

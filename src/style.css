@@ -1000,6 +1000,337 @@ body, html {
   box-shadow: 0 14px 40px rgba(0, 240, 255, 0.6);
 }
 
+/* Podium Action Buttons */
+.podium-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-secondary-action {
+  flex: 1;
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #f1f5f9;
+  font-family: 'Syne', sans-serif;
+  font-size: 1.0rem;
+  font-weight: 800;
+  padding: 14px 24px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary-action:hover {
+  border-color: #00f0ff;
+  background: rgba(51, 65, 85, 0.95);
+}
+
+/* 3-Map Timings Breakdown */
+.three-maps-breakdown {
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  border-radius: 16px;
+  padding: 14px 20px;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.breakdown-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 900;
+  font-size: 0.85rem;
+  color: #00f0ff;
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.breakdown-grid {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.breakdown-item {
+  flex: 1;
+  background: rgba(30, 41, 59, 0.6);
+  padding: 8px 12px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.breakdown-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #94a3b8;
+}
+
+.breakdown-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: #f8fafc;
+}
+
+.breakdown-total {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding-top: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.total-label {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #facc15;
+}
+
+.total-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: #ffffff;
+  text-shadow: 0 0 16px rgba(250, 204, 21, 0.6);
+}
+
+/* ========================================================
+   LANDING MODE SELECTION MODAL
+   ======================================================== */
+.mode-selection-modal {
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 7, 16, 0.94);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  z-index: 65;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mode-selection-modal.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.mode-card {
+  width: 94%;
+  max-width: 860px;
+  max-height: 94vh;
+  overflow-y: auto;
+  border-radius: 24px;
+  padding: 24px 30px;
+  border: 1px solid rgba(0, 240, 255, 0.4);
+  box-shadow: 0 0 70px rgba(0, 240, 255, 0.3);
+  scrollbar-width: thin;
+  scrollbar-color: #00f0ff rgba(15, 23, 42, 0.6);
+}
+
+.mode-choices-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.mode-choice-card {
+  background: rgba(15, 23, 42, 0.85);
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: all 0.25s ease;
+}
+
+.mode-choice-card:hover {
+  border-color: #00f0ff;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(0, 240, 255, 0.25);
+}
+
+.mode-choice-card.active-choice {
+  border-color: #00f0ff;
+  background: rgba(0, 240, 255, 0.08);
+}
+
+.choice-icon {
+  font-size: 2.8rem;
+  margin-bottom: 8px;
+}
+
+.choice-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: #ffffff;
+}
+
+.choice-tag {
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: #00f0ff;
+  margin: 4px 0 10px;
+  text-transform: uppercase;
+}
+
+.choice-desc {
+  font-size: 0.82rem;
+  color: #94a3b8;
+  line-height: 1.45;
+  margin-bottom: 18px;
+  flex: 1;
+}
+
+.choice-desc strong {
+  color: #f1f5f9;
+}
+
+.btn-choose-mode {
+  width: 100%;
+  font-family: 'Syne', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 900;
+  padding: 14px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-mode-solo {
+  background: linear-gradient(135deg, #00f0ff, #2563eb);
+  color: #000;
+  box-shadow: 0 6px 20px rgba(0, 240, 255, 0.4);
+}
+
+.btn-mode-solo:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.15);
+}
+
+.btn-mode-multi {
+  background: rgba(30, 41, 59, 0.9);
+  border: 1px solid rgba(0, 240, 255, 0.5);
+  color: #00f0ff;
+}
+
+.btn-mode-multi:hover {
+  background: rgba(0, 240, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+/* ========================================================
+   STAGE TRANSITION MODAL (Between Maps)
+   ======================================================== */
+.stage-transition-modal {
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 7, 16, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  z-index: 55;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.stage-transition-modal.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.stage-transition-card {
+  width: 90%;
+  max-width: 520px;
+  border-radius: 24px;
+  padding: 30px;
+  text-align: center;
+  border: 1px solid rgba(0, 240, 255, 0.5);
+  box-shadow: 0 0 50px rgba(0, 240, 255, 0.35);
+}
+
+.transition-badge {
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  color: #4ade80;
+  text-transform: uppercase;
+}
+
+.transition-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #ffffff;
+  margin: 6px 0 16px;
+}
+
+.transition-time-box {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 12px 20px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.trans-label {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #94a3b8;
+}
+
+.trans-time-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.45rem;
+  font-weight: 900;
+  color: #00f0ff;
+}
+
+.transition-next-msg {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #facc15;
+  margin-bottom: 14px;
+  animation: pulseNext 1.2s ease-in-out infinite;
+}
+
+@keyframes pulseNext {
+  0%, 100% { opacity: 0.85; transform: scale(1); }
+  50% { opacity: 1.0; transform: scale(1.02); }
+}
+
+.transition-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(30, 41, 59, 0.8);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.trans-bar-fill {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, #00f0ff, #2563eb);
+  transition: width 2.6s linear;
+}
+
 /* Responsive Mobile Rules */
 @media (max-width: 768px) {
   .mobile-touch-rig {
@@ -1030,7 +1361,7 @@ body, html {
   .timer-val {
     font-size: 1.3rem;
   }
-  .map-grid, .car-grid {
+  .mode-choices-grid, .map-grid, .car-grid, .breakdown-grid {
     grid-template-columns: 1fr;
   }
   .stats-grid {

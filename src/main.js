@@ -12,6 +12,10 @@ class ApexRacingGame {
     this.container = document.getElementById('canvas-container');
 
     // State
+    this.gameMode = 'solo'; // 'solo' or 'multiplayer'
+    this.soloTourStage = 0; // 0 = Map 0, 1 = Map 1, 2 = Map 2
+    this.soloTourTimes = [null, null, null];
+
     this.activeMapIndex = 0;
     this.selectedCarIndex = 0;
     this.activeCheckpoint = 1;
@@ -21,7 +25,6 @@ class ApexRacingGame {
     this.isCountingDown = false;
     this.topSpeedReached = 0;
     this.elapsedTime = 0;
-    this.isMultiplayerActive = false;
 
     this.remoteCars = new Map(); // peerId -> RemoteHypercar
     this.lastTelemetrySend = 0;
@@ -151,6 +154,9 @@ class ApexRacingGame {
       const urlParams = new URLSearchParams(window.location.search);
       const roomParam = urlParams.get('room');
       if (roomParam) {
+        // Bypass landing mode selection, go straight to multiplayer join
+        document.getElementById('mode-selection-modal').classList.remove('active');
+        document.getElementById('lobby-modal').classList.add('active');
         document.getElementById('tab-join').click();
         const joinInput = document.getElementById('join-room-input');
         if (joinInput) joinInput.value = roomParam.toUpperCase();
@@ -162,9 +168,11 @@ class ApexRacingGame {
   handleNetworkMessage(data) {
     switch (data.type) {
       case 'START_RACE': {
+        this.gameMode = 'multiplayer';
         if (data.mapIndex !== undefined && data.mapIndex !== this.activeMapIndex) {
           this.switchMap(data.mapIndex);
         }
+        document.getElementById('mode-selection-modal').classList.remove('active');
         document.getElementById('lobby-modal').classList.remove('active');
         this.startRaceSequence();
         break;
@@ -239,7 +247,11 @@ class ApexRacingGame {
     const mapCfg = MAP_CONFIGS[mapIndex];
     const mapTag = document.getElementById('map-name-tag');
     if (mapTag && mapCfg) {
-      mapTag.textContent = mapCfg.name.toUpperCase();
+      if (this.gameMode === 'solo') {
+        mapTag.textContent = `STAGE ${this.soloTourStage + 1}/3 • ${mapCfg.name.toUpperCase()}`;
+      } else {
+        mapTag.textContent = mapCfg.name.toUpperCase();
+      }
     }
   }
 
@@ -251,7 +263,8 @@ class ApexRacingGame {
     this.car.reset(0, 35, Math.PI);
     this.track.highlightCheckpoint(this.activeCheckpoint);
 
-    this.hud.showPreparingMessage('WARMING UP TIRES...');
+    const stageTitle = this.gameMode === 'solo' ? `STAGE ${this.soloTourStage + 1} / 3` : 'WARMING UP TIRES...';
+    this.hud.showPreparingMessage(stageTitle);
 
     this.car.onModelReady(() => {
       this.hud.startCountdown(() => {
@@ -323,9 +336,34 @@ class ApexRacingGame {
   }
 
   setupUI() {
-    // Top Bar Buttons
+    // 1. Landing Mode Selection Buttons
+    document.getElementById('btn-start-solo-tour').addEventListener('click', () => {
+      this.gameMode = 'solo';
+      this.soloTourStage = 0;
+      this.soloTourTimes = [null, null, null];
+      document.getElementById('mode-selection-modal').classList.remove('active');
+      this.switchMap(0);
+      this.startRaceSequence();
+    });
+
+    document.getElementById('btn-open-multi-lobby').addEventListener('click', () => {
+      this.gameMode = 'multiplayer';
+      document.getElementById('mode-selection-modal').classList.remove('active');
+      document.getElementById('lobby-modal').classList.add('active');
+    });
+
+    // Top Bar Mode & Lobby Buttons
+    document.getElementById('open-mode-btn').addEventListener('click', () => {
+      document.getElementById('mode-selection-modal').classList.add('active');
+    });
+
     document.getElementById('open-lobby-btn').addEventListener('click', () => {
       document.getElementById('lobby-modal').classList.add('active');
+    });
+
+    document.getElementById('close-lobby-btn').addEventListener('click', () => {
+      document.getElementById('lobby-modal').classList.remove('active');
+      document.getElementById('mode-selection-modal').classList.add('active');
     });
 
     document.getElementById('reset-car-btn').addEventListener('click', () => {
@@ -358,38 +396,44 @@ class ApexRacingGame {
       hostPanel.style.display = 'none';
     });
 
-    // Map Selection Cards
+    // Map Selection Cards in Lobby
     document.querySelectorAll('.map-card').forEach(card => {
       card.addEventListener('click', () => {
         document.querySelectorAll('.map-card').forEach(c => c.classList.remove('active'));
         card.classList.add('active');
         const mapId = parseInt(card.dataset.map, 10);
         this.switchMap(mapId);
-        if (this.network.isHost) {
+        if (this.network && this.network.isHost) {
           this.network.selectedMap = mapId;
           this.network.broadcastRoster();
         }
       });
     });
 
-    // Car Selection Cards
+    // Car Selection Cards across Landing, Host, and Join panels
     document.querySelectorAll('.car-card').forEach(card => {
       card.addEventListener('click', () => {
-        document.querySelectorAll('.car-card').forEach(c => c.classList.remove('active'));
-        card.classList.add('active');
         const carId = parseInt(card.dataset.car, 10);
         this.selectedCarIndex = carId;
         this.car.setCarConfig(carId);
 
-        const myPlayer = this.network.players.get(this.network.myPeerId);
-        if (myPlayer) {
-          myPlayer.carIndex = carId;
-          this.network.broadcast({
-            type: 'CAR_SELECT',
-            playerId: this.network.myPeerId,
-            carIndex: carId
-          });
-          this.network.notifyPlayersChanged();
+        // Synchronize all car cards matching this carId
+        document.querySelectorAll('.car-card').forEach(c => {
+          if (parseInt(c.dataset.car, 10) === carId) c.classList.add('active');
+          else c.classList.remove('active');
+        });
+
+        if (this.network) {
+          const myPlayer = this.network.players.get(this.network.myPeerId);
+          if (myPlayer) {
+            myPlayer.carIndex = carId;
+            this.network.broadcast({
+              type: 'CAR_SELECT',
+              playerId: this.network.myPeerId,
+              carIndex: carId
+            });
+            this.network.notifyPlayersChanged();
+          }
         }
       });
     });
@@ -407,21 +451,14 @@ class ApexRacingGame {
       });
     });
 
-    // Launch Race (Host)
+    // Launch Race (Host in Multiplayer)
     document.getElementById('start-race-btn').addEventListener('click', () => {
-      this.isMultiplayerActive = true;
+      this.gameMode = 'multiplayer';
       document.getElementById('lobby-modal').classList.remove('active');
       this.network.broadcast({
         type: 'START_RACE',
         mapIndex: this.activeMapIndex
       });
-      this.startRaceSequence();
-    });
-
-    // Solo Race
-    document.getElementById('solo-race-btn').addEventListener('click', () => {
-      this.isMultiplayerActive = false;
-      document.getElementById('lobby-modal').classList.remove('active');
       this.startRaceSequence();
     });
 
@@ -433,8 +470,17 @@ class ApexRacingGame {
       }
     });
 
-    // Rematch / Next Lap
-    document.getElementById('restart-race-btn').addEventListener('click', () => {
+    // Rematch / Next Lap buttons
+    document.getElementById('restart-tour-btn').addEventListener('click', () => {
+      document.getElementById('victory-modal').classList.remove('active');
+      this.gameMode = 'solo';
+      this.soloTourStage = 0;
+      this.soloTourTimes = [null, null, null];
+      this.switchMap(0);
+      this.startRaceSequence();
+    });
+
+    document.getElementById('switch-to-multi-btn').addEventListener('click', () => {
       document.getElementById('victory-modal').classList.remove('active');
       document.getElementById('lobby-modal').classList.add('active');
     });
@@ -527,22 +573,113 @@ class ApexRacingGame {
       origin: { y: 0.6 }
     });
 
-    const myPlayer = this.network.players.get(this.network.myPeerId);
-    if (myPlayer) {
-      myPlayer.finished = true;
-      myPlayer.finishTime = this.elapsedTime;
+    if (this.gameMode === 'solo') {
+      // Record current map time in 3-Map Campaign
+      this.soloTourTimes[this.soloTourStage] = this.elapsedTime;
+
+      // Auto-progress to Map 1 and Map 2!
+      if (this.soloTourStage < 2) {
+        this.showStageTransition(this.soloTourStage);
+        return;
+      }
+
+      // If finished all 3 stages: show Grand Prix Championship Podium!
+      this.showFinalChampionshipPodium();
+    } else {
+      // Multiplayer Finish
+      const myPlayer = this.network.players.get(this.network.myPeerId);
+      if (myPlayer) {
+        myPlayer.finished = true;
+        myPlayer.finishTime = this.elapsedTime;
+      }
+
+      this.network.broadcast({
+        type: 'RACE_FINISH',
+        playerId: this.network.myPeerId,
+        time: this.elapsedTime
+      });
+
+      this.refreshPodiumResults();
+      setTimeout(() => {
+        document.getElementById('victory-modal').classList.add('active');
+      }, 1200);
     }
+  }
 
-    this.network.broadcast({
-      type: 'RACE_FINISH',
-      playerId: this.network.myPeerId,
-      time: this.elapsedTime
-    });
+  showStageTransition(stageIndex) {
+    const modal = document.getElementById('stage-transition-modal');
+    const titleEl = document.getElementById('trans-title');
+    const timeEl = document.getElementById('trans-time');
+    const nextEl = document.getElementById('trans-next');
+    const barFill = document.getElementById('trans-bar-fill');
 
-    this.refreshPodiumResults();
+    const nextNames = [
+      '🚀 REDIRECTING TO STAGE 2: NEO-TOKYO MIDNIGHT...',
+      '🌋 REDIRECTING TO STAGE 3: VOLCANIC INFERNO...'
+    ];
+
+    titleEl.textContent = `STAGE ${stageIndex + 1} COMPLETED! 🏁`;
+    timeEl.textContent = this.hud.formatTime(this.elapsedTime);
+    nextEl.textContent = nextNames[stageIndex];
+
+    barFill.style.transition = 'none';
+    barFill.style.width = '0%';
+
+    modal.classList.add('active');
 
     setTimeout(() => {
-      document.getElementById('victory-modal').classList.add('active');
+      barFill.style.transition = 'width 2.6s linear';
+      barFill.style.width = '100%';
+    }, 50);
+
+    setTimeout(() => {
+      modal.classList.remove('active');
+      this.soloTourStage++;
+      this.switchMap(this.soloTourStage);
+      this.startRaceSequence();
+    }, 2800);
+  }
+
+  showFinalChampionshipPodium() {
+    const modal = document.getElementById('victory-modal');
+    const bdownBox = document.getElementById('three-maps-breakdown');
+    bdownBox.style.display = 'block';
+
+    const t1 = this.soloTourTimes[0] || 74.2;
+    const t2 = this.soloTourTimes[1] || 78.5;
+    const t3 = this.soloTourTimes[2] || 82.1;
+    const totalTime = t1 + t2 + t3;
+
+    document.getElementById('bdown-map1').textContent = this.hud.formatTime(t1);
+    document.getElementById('bdown-map2').textContent = this.hud.formatTime(t2);
+    document.getElementById('bdown-map3').textContent = this.hud.formatTime(t3);
+    document.getElementById('bdown-total').textContent = this.hud.formatTime(totalTime);
+
+    document.getElementById('podium-badge').textContent = 'GRAND PRIX 3-MAP CHAMPIONSHIP';
+    document.getElementById('podium-title').textContent = 'WORLD CHAMPION PODIUM 🏆';
+
+    // Podium rankings based on cumulative total
+    const myCarCfg = CAR_CONFIGS[this.selectedCarIndex];
+    document.getElementById('gold-name').textContent = 'YOU';
+    document.getElementById('gold-time').textContent = this.hud.formatTime(totalTime);
+    document.getElementById('gold-car').textContent = myCarCfg.name;
+
+    document.getElementById('silver-name').textContent = 'K. RÄIKKÖNEN';
+    document.getElementById('silver-time').textContent = this.hud.formatTime(totalTime + 4.85);
+    document.getElementById('silver-car').textContent = 'Huracán STO';
+
+    document.getElementById('bronze-name').textContent = 'M. VERSTAPPEN';
+    document.getElementById('bronze-time').textContent = this.hud.formatTime(totalTime + 9.32);
+    document.getElementById('bronze-car').textContent = 'Chiron Super Sport';
+
+    // Stats Grid
+    document.getElementById('fin-time').textContent = this.hud.formatTime(totalTime);
+    document.getElementById('fin-speed').textContent = `${Math.round(this.topSpeedReached * 3.6)} KM/H`;
+    document.getElementById('fin-map').textContent = 'ALL 3 MAPS CLEARED';
+    document.getElementById('fin-rank').textContent = '1ST GOLD 🏆';
+
+    setTimeout(() => {
+      modal.classList.add('active');
     }, 1200);
   }
 
@@ -553,9 +690,11 @@ class ApexRacingGame {
     const myCarCfg = CAR_CONFIGS[this.selectedCarIndex];
     const mapCfg = MAP_CONFIGS[this.activeMapIndex];
 
-    // Build standings
+    const bdownBox = document.getElementById('three-maps-breakdown');
+    bdownBox.style.display = 'none';
+
     let standings = [];
-    if (this.isMultiplayerActive && this.network.players.size > 1) {
+    if (this.network.players.size > 1) {
       standings = Array.from(this.network.players.values()).map(p => ({
         name: p.name,
         car: (CAR_CONFIGS[p.carIndex] || CAR_CONFIGS[0]).name,
@@ -564,7 +703,6 @@ class ApexRacingGame {
       }));
       standings.sort((a, b) => a.time - b.time);
     } else {
-      // High-octane simulated opponents for Solo trial
       standings = [
         { name: 'YOU', car: myCarCfg.name, time: this.elapsedTime, isMe: true },
         { name: 'K. RÄIKKÖNEN', car: 'Huracán STO', time: this.elapsedTime + 1.84, isMe: false },
@@ -572,7 +710,6 @@ class ApexRacingGame {
       ];
     }
 
-    // Top 3 Podium Fill
     const p1 = standings[0] || { name: 'YOU', car: myCarCfg.name, time: this.elapsedTime };
     const p2 = standings[1] || { name: 'RIVAL 1', car: 'Huracán STO', time: this.elapsedTime + 2.1 };
     const p3 = standings[2] || { name: 'RIVAL 2', car: 'Chiron SS', time: this.elapsedTime + 4.5 };
@@ -589,7 +726,6 @@ class ApexRacingGame {
     document.getElementById('bronze-time').textContent = this.hud.formatTime(p3.time);
     document.getElementById('bronze-car').textContent = p3.car;
 
-    // Telemetry Stats
     document.getElementById('fin-time').textContent = formattedTime;
     document.getElementById('fin-speed').textContent = `${topSpeedKmh} KM/H`;
     document.getElementById('fin-map').textContent = mapCfg.badge;
@@ -617,11 +753,9 @@ class ApexRacingGame {
       .addScaledVector(behindVec, chaseDist)
       .add(new THREE.Vector3(0, chaseHeight, 0));
 
-    // Butter-smooth camera positioning (Zero random jitter/shake)
     this.camera.position.lerp(desiredCamPos, dt * 11);
     this.camera.lookAt(this.cameraTarget);
 
-    // High-Speed FOV expansion up to 84°
     const targetFOV = this.car.isNitro ? 84 : (62 + speedRatio * 16);
     this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, targetFOV, dt * 6);
     this.camera.updateProjectionMatrix();

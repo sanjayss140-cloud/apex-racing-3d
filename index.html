@@ -22,11 +22,14 @@
 
       <div class="timer-box glass">
         <div id="lap-time" class="timer-val">00:00.000</div>
-        <div id="map-name-tag" class="timer-label">7 WONDERS CIRCUIT</div>
+        <div id="map-name-tag" class="timer-label">STAGE 1/3 • 7 WONDERS TOUR</div>
       </div>
 
       <div class="top-actions">
-        <button id="open-lobby-btn" class="btn-hud glass" title="Multiplayer Lobby & Map Selection">
+        <button id="open-mode-btn" class="btn-hud glass" title="Change Mode (Solo / Multiplayer)">
+          🎮 <span>Modes</span>
+        </button>
+        <button id="open-lobby-btn" class="btn-hud glass" title="Multiplayer Lobby">
           🌐 <span>Multiplayer</span>
         </button>
         <button id="mute-btn" class="btn-hud glass" title="Toggle Engine Audio">
@@ -91,13 +94,103 @@
       </div>
     </div>
 
-    <!-- Multiplayer & Map Selection Lobby Modal -->
-    <div id="lobby-modal" class="lobby-modal active">
+    <!-- ========================================================
+         LANDING MODE SELECTION MODAL (Solo 3-Map vs Multiplayer)
+         ======================================================== -->
+    <div id="mode-selection-modal" class="mode-selection-modal active">
+      <div class="mode-card glass">
+        <div class="lobby-header">
+          <div class="lobby-badge">WELCOME TO APEX RUSH 3D</div>
+          <h1 class="lobby-title">SELECT <span>GAME MODE</span></h1>
+          <p class="lobby-subtitle">Drive at 500+ KM/H across 3 grand circuits or race with friends</p>
+        </div>
+
+        <div class="mode-choices-grid">
+          <!-- Solo Mode: Continuous 3-Map Campaign -->
+          <div id="choose-solo-card" class="mode-choice-card active-choice">
+            <div class="choice-icon">🏆</div>
+            <div class="choice-title">SOLO GRAND PRIX</div>
+            <div class="choice-tag">CONTINUOUS 3-MAP TOUR</div>
+            <div class="choice-desc">
+              Race through all 3 circuits continuously: <strong>7 Wonders</strong> ➔ <strong>Neo-Tokyo Midnight</strong> ➔ <strong>Volcanic Inferno</strong>. Auto-transitions map-to-map and crowns you on the final 3-map cumulative Championship Podium!
+            </div>
+            <button id="btn-start-solo-tour" class="btn-choose-mode btn-mode-solo">
+              🚀 START 3-MAP GRAND PRIX
+            </button>
+          </div>
+
+          <!-- Multiplayer Mode: Room creation & link sharing -->
+          <div id="choose-multi-card" class="mode-choice-card">
+            <div class="choice-icon">🌐</div>
+            <div class="choice-title">PLAY WITH FRIENDS</div>
+            <div class="choice-tag">MULTIPLAYER (UP TO 6 PLAYERS)</div>
+            <div class="choice-desc">
+              Host a room and share your 1-click invite link or room code with up to 5 friends! Join via link or code entry, pick any of the 3 maps, and race live peer-to-peer!
+            </div>
+            <button id="btn-open-multi-lobby" class="btn-choose-mode btn-mode-multi">
+              👥 ENTER MULTIPLAYER LOBBY
+            </button>
+          </div>
+        </div>
+
+        <!-- Hypercar Garage Selector -->
+        <div class="section-title" style="margin-top: 18px;">CHOOSE YOUR CHAMPIONSHIP HYPERCAR (6 CHOICES)</div>
+        <div class="car-grid" id="landing-car-grid">
+          <div class="car-card active" data-car="0">
+            <div class="car-color-dot" style="background: #dc2626;"></div>
+            <div class="car-info">
+              <div class="car-name">Ferrari 458 Italia</div>
+              <div class="car-spec">500 KM/H • Rosso Corsa</div>
+            </div>
+          </div>
+          <div class="car-card" data-car="1">
+            <div class="car-color-dot" style="background: #16a34a;"></div>
+            <div class="car-info">
+              <div class="car-name">Huracán STO</div>
+              <div class="car-spec">505 KM/H • Verde Mantis GT Wing</div>
+            </div>
+          </div>
+          <div class="car-card" data-car="2">
+            <div class="car-color-dot" style="background: #1d4ed8;"></div>
+            <div class="car-info">
+              <div class="car-name">Chiron Super Sport</div>
+              <div class="car-spec">515 KM/H • French Racing Blue</div>
+            </div>
+          </div>
+          <div class="car-card" data-car="3">
+            <div class="car-color-dot" style="background: #ea580c;"></div>
+            <div class="car-info">
+              <div class="car-name">McLaren P1</div>
+              <div class="car-spec">508 KM/H • Volcano Orange DRS</div>
+            </div>
+          </div>
+          <div class="car-card" data-car="4">
+            <div class="car-color-dot" style="background: #cbd5e1;"></div>
+            <div class="car-info">
+              <div class="car-name">Porsche 918 Spyder</div>
+              <div class="car-spec">502 KM/H • Liquid Metal Weissach</div>
+            </div>
+          </div>
+          <div class="car-card" data-car="5">
+            <div class="car-color-dot" style="background: #f8fafc;"></div>
+            <div class="car-info">
+              <div class="car-name">Jesko Absolut</div>
+              <div class="car-spec">520 KM/H • Arctic White Speed Fin</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         MULTIPLAYER LOBBY MODAL (Host / Join / Share Link)
+         ======================================================== -->
+    <div id="lobby-modal" class="lobby-modal">
       <div class="lobby-card glass">
         <div class="lobby-header">
           <div class="lobby-badge">ONLINE MULTIPLAYER & CIRCUIT SELECTOR</div>
-          <h1 class="lobby-title">APEX <span>GRAND PRIX</span></h1>
-          <p class="lobby-subtitle">Race with up to 6 players at 500+ KM/H or solo time trial</p>
+          <h1 class="lobby-title">APEX <span>MULTIPLAYER LOBBY</span></h1>
+          <p class="lobby-subtitle">Race with up to 6 players at 500+ KM/H</p>
         </div>
 
         <!-- Mode Selector -->
@@ -129,8 +222,8 @@
           </div>
 
           <!-- Car Garage Selector -->
-          <div class="section-title" style="margin-top: 14px;">SELECT YOUR HYPERCAR (6 CHOICES)</div>
-          <div class="car-grid">
+          <div class="section-title" style="margin-top: 14px;">SELECT YOUR HYPERCAR</div>
+          <div class="car-grid" id="host-car-grid">
             <div class="car-card active" data-car="0">
               <div class="car-color-dot" style="background: #dc2626;"></div>
               <div class="car-info">
@@ -142,35 +235,35 @@
               <div class="car-color-dot" style="background: #16a34a;"></div>
               <div class="car-info">
                 <div class="car-name">Huracán STO</div>
-                <div class="car-spec">505 KM/H • Verde Mantis GT Wing</div>
+                <div class="car-spec">505 KM/H • Verde Mantis</div>
               </div>
             </div>
             <div class="car-card" data-car="2">
               <div class="car-color-dot" style="background: #1d4ed8;"></div>
               <div class="car-info">
                 <div class="car-name">Chiron Super Sport</div>
-                <div class="car-spec">515 KM/H • French Racing Blue</div>
+                <div class="car-spec">515 KM/H • French Blue</div>
               </div>
             </div>
             <div class="car-card" data-car="3">
               <div class="car-color-dot" style="background: #ea580c;"></div>
               <div class="car-info">
                 <div class="car-name">McLaren P1</div>
-                <div class="car-spec">508 KM/H • Volcano Orange DRS</div>
+                <div class="car-spec">508 KM/H • Volcano Orange</div>
               </div>
             </div>
             <div class="car-card" data-car="4">
               <div class="car-color-dot" style="background: #cbd5e1;"></div>
               <div class="car-info">
                 <div class="car-name">Porsche 918 Spyder</div>
-                <div class="car-spec">502 KM/H • Liquid Metal Weissach</div>
+                <div class="car-spec">502 KM/H • Silver Weissach</div>
               </div>
             </div>
             <div class="car-card" data-car="5">
               <div class="car-color-dot" style="background: #f8fafc;"></div>
               <div class="car-info">
                 <div class="car-name">Jesko Absolut</div>
-                <div class="car-spec">520 KM/H • Arctic White Speed Fin</div>
+                <div class="car-spec">520 KM/H • Arctic White</div>
               </div>
             </div>
           </div>
@@ -188,7 +281,7 @@
           <div id="copy-feedback" class="copy-feedback"></div>
 
           <!-- Live Lobby Roster -->
-          <div class="section-title" style="margin-top: 12px;">LOBBY RACERS (<span id="player-count">1</span>/6 PLAYERS)</div>
+          <div class="section-title" style="margin-top: 10px;">LOBBY RACERS (<span id="player-count">1</span>/6 PLAYERS)</div>
           <div id="player-roster" class="player-roster">
             <div class="roster-item me">
               <span class="player-status-icon">👑</span>
@@ -197,12 +290,12 @@
             </div>
           </div>
 
-          <div class="lobby-action-row" style="margin-top: 16px;">
+          <div class="lobby-action-row" style="margin-top: 14px;">
             <button id="start-race-btn" class="btn-start-race">
               🚀 LAUNCH RACE (ALL PLAYERS)
             </button>
-            <button id="solo-race-btn" class="btn-solo-race">
-              ⏱️ SOLO TIME TRIAL
+            <button id="close-lobby-btn" class="btn-solo-race">
+              BACK TO MODES
             </button>
           </div>
         </div>
@@ -216,7 +309,7 @@
           </div>
           <div id="join-status" class="join-status"></div>
 
-          <div class="section-title" style="margin-top: 16px;">CHOOSE YOUR HYPERCAR</div>
+          <div class="section-title" style="margin-top: 14px;">CHOOSE YOUR HYPERCAR</div>
           <div class="car-grid" id="join-car-grid">
             <div class="car-card active" data-car="1">
               <div class="car-color-dot" style="background: #16a34a;"></div>
@@ -266,19 +359,41 @@
       </div>
     </div>
 
-    <!-- Top 3 Podium Awards Victory Modal -->
+    <!-- ========================================================
+         STAGE TRANSITION MODAL (Between Maps in 3-Map Tour)
+         ======================================================== -->
+    <div id="stage-transition-modal" class="stage-transition-modal">
+      <div class="stage-transition-card glass">
+        <div class="transition-badge">CIRCUIT COMPLETED!</div>
+        <h2 id="trans-title" class="transition-title">STAGE 1 COMPLETED! 🏁</h2>
+        <div class="transition-time-box">
+          <span class="trans-label">STAGE TIME:</span>
+          <span id="trans-time" class="trans-time-val">01:14.280</span>
+        </div>
+        <div id="trans-next" class="transition-next-msg">
+          🚀 REDIRECTING TO STAGE 2: NEO-TOKYO MIDNIGHT...
+        </div>
+        <div class="transition-progress-bar">
+          <div id="trans-bar-fill" class="trans-bar-fill"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         FINAL 3-TIER PODIUM & 3-MAP BREAKDOWN CEREMONY
+         ======================================================== -->
     <div id="victory-modal" class="victory-modal">
       <div class="podium-card glass">
-        <div class="victory-badge">WORLD CHAMPIONSHIP FINISH</div>
-        <h1 class="victory-title">PODIUM CEREMONY 🏆</h1>
+        <div class="victory-badge" id="podium-badge">WORLD CHAMPIONSHIP FINISH</div>
+        <h1 class="victory-title" id="podium-title">PODIUM CEREMONY 🏆</h1>
 
         <!-- 3-Tier Podium Stage -->
         <div class="podium-stage">
           <!-- 2nd Place Silver -->
           <div class="podium-tier tier-silver">
             <div class="podium-medal">🥈</div>
-            <div id="silver-name" class="podium-player">PLAYER 2</div>
-            <div id="silver-time" class="podium-time">01:18.420</div>
+            <div id="silver-name" class="podium-player">K. RÄIKKÖNEN</div>
+            <div id="silver-time" class="podium-time">03:48.420</div>
             <div id="silver-car" class="podium-car">Huracán STO</div>
             <div class="podium-pillar pillar-2">2ND</div>
           </div>
@@ -288,7 +403,7 @@
             <div class="podium-crown">👑</div>
             <div class="podium-medal">🥇</div>
             <div id="gold-name" class="podium-player">YOU</div>
-            <div id="gold-time" class="podium-time">01:14.280</div>
+            <div id="gold-time" class="podium-time">03:42.150</div>
             <div id="gold-car" class="podium-car">Ferrari 458</div>
             <div class="podium-pillar pillar-1">1ST</div>
           </div>
@@ -296,26 +411,49 @@
           <!-- 3rd Place Bronze -->
           <div class="podium-tier tier-bronze">
             <div class="podium-medal">🥉</div>
-            <div id="bronze-name" class="podium-player">PLAYER 3</div>
-            <div id="bronze-time" class="podium-time">01:21.950</div>
+            <div id="bronze-name" class="podium-player">M. VERSTAPPEN</div>
+            <div id="bronze-time" class="podium-time">03:55.950</div>
             <div id="bronze-car" class="podium-car">Chiron Super Sport</div>
             <div class="podium-pillar pillar-3">3RD</div>
+          </div>
+        </div>
+
+        <!-- 3-Map Timings Breakdown (Shown for Solo Tour) -->
+        <div id="three-maps-breakdown" class="three-maps-breakdown">
+          <div class="breakdown-title">🏁 3-MAP CIRCUIT STAGE TIMES</div>
+          <div class="breakdown-grid">
+            <div class="breakdown-item">
+              <span class="breakdown-label">🏛️ MAP 1: 7 WONDERS</span>
+              <span id="bdown-map1" class="breakdown-time">01:14.280</span>
+            </div>
+            <div class="breakdown-item">
+              <span class="breakdown-label">🌃 MAP 2: NEO-TOKYO</span>
+              <span id="bdown-map2" class="breakdown-time">01:18.450</span>
+            </div>
+            <div class="breakdown-item">
+              <span class="breakdown-label">🌋 MAP 3: VOLCANIC INFERNO</span>
+              <span id="bdown-map3" class="breakdown-time">01:21.110</span>
+            </div>
+          </div>
+          <div class="breakdown-total">
+            <span class="total-label">🏆 CUMULATIVE GRAND PRIX TIME:</span>
+            <span id="bdown-total" class="total-time">03:53.840</span>
           </div>
         </div>
 
         <!-- Telemetry Stats -->
         <div class="stats-grid">
           <div class="stat-item">
-            <div class="stat-item-label">YOUR LAP TIME</div>
-            <div id="fin-time" class="stat-item-val">01:14.280</div>
+            <div class="stat-item-label">TOTAL TIME</div>
+            <div id="fin-time" class="stat-item-val">03:53.840</div>
           </div>
           <div class="stat-item">
             <div class="stat-item-label">TOP SPEED ACHIEVED</div>
-            <div id="fin-speed" class="stat-item-val">508 KM/H</div>
+            <div id="fin-speed" class="stat-item-val">528 KM/H</div>
           </div>
           <div class="stat-item">
-            <div class="stat-item-label">TRACK MAP</div>
-            <div id="fin-map" class="stat-item-val rank-pill">7 WONDERS</div>
+            <div class="stat-item-label">TOUR STATUS</div>
+            <div id="fin-map" class="stat-item-val rank-pill">ALL 3 MAPS</div>
           </div>
           <div class="stat-item">
             <div class="stat-item-label">FINAL STANDING</div>
@@ -323,9 +461,14 @@
           </div>
         </div>
 
-        <button id="restart-race-btn" class="btn-restart">
-          🏁 RACE AGAIN / REMATCH
-        </button>
+        <div class="podium-actions">
+          <button id="restart-tour-btn" class="btn-restart">
+            🔄 RACE 3-MAP TOUR AGAIN
+          </button>
+          <button id="switch-to-multi-btn" class="btn-secondary-action">
+            🌐 PLAY WITH FRIENDS (MULTIPLAYER)
+          </button>
+        </div>
       </div>
     </div>
 

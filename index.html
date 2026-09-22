@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>APEX RUSH 3D — 500 KM/H Multiplayer Hypercar Circuit</title>
-    <script type="module" crossorigin src="./assets/index-CAAH2rEG.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-D4rWMnvm.css">
+    <script type="module" crossorigin src="./assets/index-BZOq-MAl.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-BUovwtzc.css">
   </head>
   <body>
     <!-- WebGL Canvas Container -->
@@ -27,6 +27,9 @@
       </div>
 
       <div class="top-actions">
+        <button id="camera-view-btn" class="btn-hud glass" title="Change View: Cockpit In-Seat / 3rd Person (Press V or C)">
+          👁️ <span id="camera-view-label">Cockpit</span>
+        </button>
         <button id="open-mode-btn" class="btn-hud glass" title="Change Mode (Solo / Multiplayer)">
           🎮 <span>Modes</span>
         </button>
@@ -102,18 +105,14 @@
       <div class="mode-card glass">
         <div class="lobby-header">
           <h1 class="lobby-title">SELECT <span>GAME MODE</span></h1>
-          <p class="lobby-subtitle">Solo 3-Map Championship or Live Multiplayer with Friends</p>
         </div>
 
         <div class="mode-choices-grid">
           <!-- Solo Mode -->
           <div id="choose-solo-card" class="mode-choice-card active-choice">
             <div class="choice-icon">🏆</div>
-            <div class="choice-title">SOLO GRAND PRIX</div>
-            <div class="choice-tag">3 MAPS CONTINUOUS TOUR</div>
-            <div class="choice-desc">
-              7 Wonders • Neo-Tokyo • Volcanic Inferno
-            </div>
+            <div class="choice-title">SOLO MODE</div>
+            <div class="choice-tag">3 MAPS</div>
             <button id="btn-start-solo-tour" class="btn-choose-mode btn-mode-solo">
               ▶ SELECT CAR & RACE
             </button>
@@ -123,11 +122,7 @@
           <div id="choose-multi-card" class="mode-choice-card">
             <div class="choice-icon">🌐</div>
             <div class="choice-title">PLAY WITH FRIENDS</div>
-            <div class="choice-tag">MULTIPLAYER (UP TO 6)</div>
-            <div class="choice-desc">
-              Host Room • Share Code / Link • Live Race
-            </div>
-            <button id="btn-open-multi-lobby" class="btn-choose-mode btn-mode-multi">
+            <button id="btn-open-multi-lobby" class="btn-choose-mode btn-mode-multi" style="margin-top: 24px;">
               ▶ CHOOSE CAR & JOIN LOBBY
             </button>
           </div>
@@ -142,7 +137,7 @@
       <div class="showroom-top-hud glass">
         <div class="showroom-title">SELECT YOUR <span>HYPERCAR</span></div>
         <div id="showroom-car-name" class="showroom-car-name">BUGATTI TOURBILLON BOLIDE</div>
-        <div id="showroom-car-desc" class="showroom-car-desc">500 KM/H • ICE METALLIC SKY BLUE • LE MANS FIN</div>
+        <div id="showroom-car-desc" class="showroom-car-desc">500 KM/H</div>
       </div>
 
       <div class="showroom-bottom-dock glass">
@@ -152,42 +147,36 @@
             <div class="car-color-dot" style="background: #7bb6d6;"></div>
             <div class="car-info">
               <div class="car-name">Bugatti Bolide</div>
-              <div class="car-spec">500 KM/H • Ice Blue</div>
             </div>
           </div>
           <div class="car-card" data-car="1">
             <div class="car-color-dot" style="background: #420c15;"></div>
             <div class="car-info">
               <div class="car-name">Pagani Huayra</div>
-              <div class="car-spec">500 KM/H • Cherry Red</div>
             </div>
           </div>
           <div class="car-card" data-car="2">
             <div class="car-color-dot" style="background: #3b332d;"></div>
             <div class="car-info">
               <div class="car-name">Apollo IE</div>
-              <div class="car-spec">500 KM/H • Bronze Carbon</div>
             </div>
           </div>
           <div class="car-card" data-car="3">
             <div class="car-color-dot" style="background: #f8fafc;"></div>
             <div class="car-info">
               <div class="car-name">Jesko Absolut</div>
-              <div class="car-spec">500 KM/H • Arctic White</div>
             </div>
           </div>
           <div class="car-card" data-car="4">
             <div class="car-color-dot" style="background: #ea580c;"></div>
             <div class="car-info">
               <div class="car-name">McLaren Solus</div>
-              <div class="car-spec">500 KM/H • Papaya Orange</div>
             </div>
           </div>
           <div class="car-card" data-car="5">
             <div class="car-color-dot" style="background: #dc2626;"></div>
             <div class="car-info">
               <div class="car-name">Ferrari Daytona</div>
-              <div class="car-spec">500 KM/H • Rosso Corsa</div>
             </div>
           </div>
         </div>
@@ -209,9 +198,7 @@
     <div id="lobby-modal" class="lobby-modal">
       <div class="lobby-card glass">
         <div class="lobby-header">
-          <div class="lobby-badge">ONLINE MULTIPLAYER & CIRCUIT SELECTOR</div>
           <h1 class="lobby-title">APEX <span>MULTIPLAYER LOBBY</span></h1>
-          <p class="lobby-subtitle">Race with up to 6 players at 500+ KM/H</p>
         </div>
 
         <!-- Mode Selector -->
@@ -227,64 +214,55 @@
           <div class="map-grid">
             <div class="map-card active" data-map="0">
               <div class="map-tag">MAP 1</div>
-              <div class="map-name">🏛️ 7 Wonders Grand Tour</div>
-              <div class="map-desc">2.1 KM • Pyramids • Colosseum • Alps</div>
+              <div class="map-name">Desert</div>
             </div>
             <div class="map-card" data-map="1">
               <div class="map-tag">MAP 2</div>
-              <div class="map-name">🌃 Neo-Tokyo Midnight</div>
-              <div class="map-desc">1.7 KM • Cyber Neon • Tokyo Bay Tube</div>
+              <div class="map-name">Tokyo</div>
             </div>
             <div class="map-card" data-map="2">
               <div class="map-tag">MAP 3</div>
-              <div class="map-name">🌋 Volcanic Inferno Canyon</div>
-              <div class="map-desc">1.8 KM • Lava Caldera • Obsidian Bridges</div>
+              <div class="map-name">Volcano</div>
             </div>
           </div>
 
           <!-- Car Garage Selector -->
-          <div class="section-title" style="margin-top: 14px;">SELECT YOUR HYPERCAR (IDENTICAL 500 KM/H ATTRIBUTES)</div>
+          <div class="section-title" style="margin-top: 14px;">SELECT YOUR HYPERCAR</div>
           <div class="car-grid" id="host-car-grid">
             <div class="car-card active" data-car="0">
               <div class="car-color-dot" style="background: #7bb6d6;"></div>
               <div class="car-info">
-                <div class="car-name">Bugatti Tourbillon Bolide</div>
-                <div class="car-spec">500 KM/H • Curved GT Wing & Dorsal Fin</div>
+                <div class="car-name">Bugatti Bolide</div>
               </div>
             </div>
             <div class="car-card" data-car="1">
               <div class="car-color-dot" style="background: #420c15;"></div>
               <div class="car-info">
-                <div class="car-name">Pagani Huayra BC</div>
-                <div class="car-spec">500 KM/H • High Quad Rocket & Roll Hoops</div>
+                <div class="car-name">Pagani Huayra</div>
               </div>
             </div>
             <div class="car-card" data-car="2">
               <div class="car-color-dot" style="background: #3b332d;"></div>
               <div class="car-info">
-                <div class="car-name">Apollo Intensa Emozione</div>
-                <div class="car-spec">500 KM/H • Trident Batwing & Diffuser</div>
+                <div class="car-name">Apollo IE</div>
               </div>
             </div>
             <div class="car-card" data-car="3">
               <div class="car-color-dot" style="background: #f8fafc;"></div>
               <div class="car-info">
                 <div class="car-name">Jesko Absolut</div>
-                <div class="car-spec">500 KM/H • Twin Apex Fins & Longtail</div>
               </div>
             </div>
             <div class="car-card" data-car="4">
               <div class="car-color-dot" style="background: #ea580c;"></div>
               <div class="car-info">
-                <div class="car-name">McLaren Solus GT</div>
-                <div class="car-spec">500 KM/H • Roof Snorkel & GT3 Wing</div>
+                <div class="car-name">McLaren Solus</div>
               </div>
             </div>
             <div class="car-card" data-car="5">
               <div class="car-color-dot" style="background: #dc2626;"></div>
               <div class="car-info">
-                <div class="car-name">Ferrari Daytona SP3</div>
-                <div class="car-spec">500 KM/H • Rear Strakes & Cyber Lightbar</div>
+                <div class="car-name">Ferrari Daytona</div>
               </div>
             </div>
           </div>
@@ -307,7 +285,7 @@
             <div class="roster-item me">
               <span class="player-status-icon">👑</span>
               <span class="player-name">Player 1 (Host)</span>
-              <span class="player-car-tag">Bugatti Tourbillon</span>
+              <span class="player-car-tag">Bugatti Bolide</span>
             </div>
           </div>
 
@@ -330,50 +308,45 @@
           </div>
           <div id="join-status" class="join-status"></div>
 
-          <div class="section-title" style="margin-top: 14px;">CHOOSE YOUR HYPERCAR (IDENTICAL 500 KM/H ATTRIBUTES)</div>
+          <div class="section-title" style="margin-top: 14px;">CHOOSE YOUR HYPERCAR</div>
           <div class="car-grid" id="join-car-grid">
             <div class="car-card active" data-car="0">
               <div class="car-color-dot" style="background: #7bb6d6;"></div>
               <div class="car-info">
-                <div class="car-name">Bugatti Tourbillon Bolide</div>
-                <div class="car-spec">500 KM/H • Curved GT Wing & Dorsal Fin</div>
+                <div class="car-name">Bugatti Bolide</div>
               </div>
             </div>
             <div class="car-card" data-car="1">
               <div class="car-color-dot" style="background: #420c15;"></div>
               <div class="car-info">
-                <div class="car-name">Pagani Huayra BC</div>
-                <div class="car-spec">500 KM/H • High Quad Rocket & Roll Hoops</div>
+                <div class="car-name">Pagani Huayra</div>
               </div>
             </div>
             <div class="car-card" data-car="2">
               <div class="car-color-dot" style="background: #3b332d;"></div>
               <div class="car-info">
-                <div class="car-name">Apollo Intensa Emozione</div>
-                <div class="car-spec">500 KM/H • Trident Batwing & Diffuser</div>
+                <div class="car-name">Apollo IE</div>
               </div>
             </div>
             <div class="car-card" data-car="3">
               <div class="car-color-dot" style="background: #f8fafc;"></div>
               <div class="car-info">
                 <div class="car-name">Jesko Absolut</div>
-                <div class="car-spec">500 KM/H • Twin Apex Fins & Longtail</div>
               </div>
             </div>
             <div class="car-card" data-car="4">
               <div class="car-color-dot" style="background: #ea580c;"></div>
               <div class="car-info">
-                <div class="car-name">McLaren Solus GT</div>
-                <div class="car-spec">500 KM/H • Roof Snorkel & GT3 Wing</div>
+                <div class="car-name">McLaren Solus</div>
               </div>
             </div>
             <div class="car-card" data-car="5">
               <div class="car-color-dot" style="background: #dc2626;"></div>
               <div class="car-info">
-                <div class="car-name">Ferrari Daytona SP3</div>
-                <div class="car-spec">500 KM/H • Rear Strakes & Cyber Lightbar</div>
+                <div class="car-name">Ferrari Daytona</div>
               </div>
             </div>
+          </div>
           </div>
         </div>
 

@@ -363,16 +363,6 @@ class ApexRacingGame {
   }
 
   setupUI() {
-    // 0. Grand Hollywood Entrance Screen
-    const btnEnterHollywood = document.getElementById('btn-enter-hollywood');
-    if (btnEnterHollywood) {
-      btnEnterHollywood.addEventListener('click', () => {
-        audio.ensureContext();
-        document.getElementById('hollywood-entrance-modal').classList.add('hidden');
-        document.getElementById('mode-selection-modal').classList.add('active');
-      });
-    }
-
     // 1. Landing Mode Selection Buttons
     document.getElementById('btn-start-solo-tour').addEventListener('click', () => {
       this.gameMode = 'solo';

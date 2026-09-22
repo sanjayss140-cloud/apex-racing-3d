@@ -1,93 +1,7 @@
 import * as THREE from 'three';
 import { audio } from './audio.js';
-import { buildProceduralHypercar } from './hypercarBuilder.js';
-
-export const CAR_CONFIGS = [
-  {
-    id: 0,
-    type: 'tourbillon',
-    name: 'Bugatti Tourbillon Bolide',
-    manufacturer: 'Bugatti',
-    paintColor: 0x7bb6d6, // Ice Metallic Sky Blue
-    secondaryColor: 0x0a0f1d,
-    accentColor: 0x00f0ff, // Electric Cyan Jewel LED
-    caliperColor: 0x00f0ff,
-    flameColor: 0x00f0ff,
-    roughness: 0.12,
-    metalness: 0.92,
-    description: 'V16 Quad-Turbo • Curved GT Wing & Le Mans Dorsal Fin (500 KM/H)'
-  },
-  {
-    id: 1,
-    type: 'huayra_bc',
-    name: 'Pagani Huayra BC',
-    manufacturer: 'Pagani',
-    paintColor: 0x420c15, // Deep Gloss Cherry Burgundy Carbon
-    secondaryColor: 0x141416,
-    accentColor: 0xfacc15, // Giallo Gold Pinstriping
-    caliperColor: 0xfacc15,
-    flameColor: 0xf59e0b,
-    roughness: 0.14,
-    metalness: 0.88,
-    description: 'Twin-Turbo V12 • High Quad Cloverleaf Rocket & Roll Hoops (500 KM/H)'
-  },
-  {
-    id: 2,
-    type: 'apollo_ie',
-    name: 'Apollo Intensa Emozione',
-    manufacturer: 'Apollo',
-    paintColor: 0x3b332d, // Matte Bronze Titanium Forged Carbon
-    secondaryColor: 0x0a0a0b,
-    accentColor: 0xef4444, // Apex Crimson
-    caliperColor: 0xef4444,
-    flameColor: 0xef4444,
-    roughness: 0.18,
-    metalness: 0.85,
-    description: '6.3L V12 Screamer • Radical Trident Batwing & Stealth Diffuser (500 KM/H)'
-  },
-  {
-    id: 3,
-    type: 'jesko',
-    name: 'Koenigsegg Jesko Absolut',
-    manufacturer: 'Koenigsegg',
-    paintColor: 0xf8fafc, // Ghost Arctic White
-    secondaryColor: 0x0f172a,
-    accentColor: 0xdc2626, // Apex Crimson
-    caliperColor: 0xdc2626,
-    flameColor: 0x818cf8, // Plasma Violet/Blue
-    roughness: 0.10,
-    metalness: 0.95,
-    description: 'Twin-Turbo V8 • Twin Apex Shark Fins & 0.95m Longtail (500 KM/H)'
-  },
-  {
-    id: 4,
-    type: 'mclaren_solus',
-    name: 'McLaren Solus GT',
-    manufacturer: 'McLaren',
-    paintColor: 0xea580c, // Volcano Papaya Metallic Orange
-    secondaryColor: 0x18181b,
-    accentColor: 0xfacc15,
-    caliperColor: 0xea580c,
-    flameColor: 0xff5722,
-    roughness: 0.15,
-    metalness: 0.90,
-    description: '5.2L V10 Prototype • Roof Ram-Air Snorkel & Twin-Tier GT3 Wing (500 KM/H)'
-  },
-  {
-    id: 5,
-    type: 'daytona_sp3',
-    name: 'Ferrari Daytona SP3',
-    manufacturer: 'Ferrari',
-    paintColor: 0xdc2626, // Rosso Corsa Deep Racing Red
-    secondaryColor: 0x141416,
-    accentColor: 0xfacc15, // Giallo Modena
-    caliperColor: 0xfacc15,
-    flameColor: 0xff1744,
-    roughness: 0.15,
-    metalness: 0.88,
-    description: '6.5L V12 Icona • Full-Width Rear Strakes & Cyber Lightbar (500 KM/H)'
-  }
-];
+import { CAR_CONFIGS, hypercarModelManager, buildRealisticHypercar } from './hypercarBuilder.js';
+export { CAR_CONFIGS };
 
 
 export class Hypercar {
@@ -179,32 +93,37 @@ export class Hypercar {
   }
 
   rebuildHypercarMesh() {
-    if (this.currentCarMeshGroup) {
-      this.carModelWrapper.remove(this.currentCarMeshGroup);
-    }
     const cfg = CAR_CONFIGS[this.carIndex] || CAR_CONFIGS[0];
-    const built = buildProceduralHypercar(cfg);
-    this.currentCarMeshGroup = built.group;
-    this.wheelFL = built.wheelFL;
-    this.wheelFR = built.wheelFR;
-    this.wheelRL = built.wheelRL;
-    this.wheelRR = built.wheelRR;
-    this.steerFL = built.steerFL;
-    this.steerFR = built.steerFR;
-    this.flames = built.flames;
-    this.taillightMat = built.taillightMat;
-    this.bodyMeshes = built.bodyMeshes;
+    hypercarModelManager.loadTemplate().then((template) => {
+      if (this.currentCarMeshGroup) {
+        this.carModelWrapper.remove(this.currentCarMeshGroup);
+      }
+      const built = buildRealisticHypercar(template, cfg);
+      this.currentCarMeshGroup = built.group;
+      this.wheelFL = built.wheelFL;
+      this.wheelFR = built.wheelFR;
+      this.wheelRL = built.wheelRL;
+      this.wheelRR = built.wheelRR;
+      this.steeringWheel = built.steeringWheel;
+      this.flames = built.flames;
+      this.taillightMat = built.taillightMat;
+      this.bodyMeshes = built.bodyMeshes;
 
-    this.carModelWrapper.add(this.currentCarMeshGroup);
-    this.group.position.copy(this.position);
-    this.group.rotation.set(0, this.heading, 0);
-    if (this.shadowBlob) {
-      this.shadowBlob.position.set(this.position.x, 0.03, this.position.z);
-      this.shadowBlob.rotation.z = -this.heading;
-    }
-    this.isReady = true;
-    this.readyCallbacks.forEach(cb => cb());
-    this.readyCallbacks = [];
+      this.carModelWrapper.add(this.currentCarMeshGroup);
+      this.group.position.copy(this.position);
+      this.group.rotation.set(0, this.heading, 0);
+      if (this.shadowBlob) {
+        this.shadowBlob.position.set(this.position.x, 0.03, this.position.z);
+        this.shadowBlob.rotation.z = -this.heading;
+      }
+      this.isReady = true;
+      this.readyCallbacks.forEach(cb => {
+        try { cb(); } catch (e) { console.error(e); }
+      });
+      this.readyCallbacks = [];
+    }).catch(err => {
+      console.error('Failed to build hypercar:', err);
+    });
   }
 
   setCarConfig(index) {
@@ -537,15 +456,27 @@ export class Hypercar {
     this.calculateGearsAndRPM();
 
     // 6. Wheels rotation & steering
-    const rotDelta = (this.forwardSpeed / 0.35) * dt;
+    const rotDelta = (this.forwardSpeed / 0.34) * dt;
     this.wheelRollAngle += rotDelta;
 
-    if (this.steerFL) this.steerFL.rotation.y = this.steerAngle;
-    if (this.steerFR) this.steerFR.rotation.y = this.steerAngle;
-    if (this.wheelFL) this.wheelFL.rotation.x = this.wheelRollAngle;
-    if (this.wheelFR) this.wheelFR.rotation.x = this.wheelRollAngle;
-    if (this.wheelRL) this.wheelRL.rotation.x = this.wheelRollAngle;
-    if (this.wheelRR) this.wheelRR.rotation.x = this.wheelRollAngle;
+    const baseRotX = -Math.PI / 2; // Authentic GLTF rest pose
+    const roll = baseRotX + this.wheelRollAngle;
+
+    if (this.wheelFL) {
+      this.wheelFL.rotation.set(roll, 0, this.steerAngle, 'ZXY');
+    }
+    if (this.wheelFR) {
+      this.wheelFR.rotation.set(roll, 0, this.steerAngle, 'ZXY');
+    }
+    if (this.wheelRL) {
+      this.wheelRL.rotation.set(roll, 0, 0);
+    }
+    if (this.wheelRR) {
+      this.wheelRR.rotation.set(roll, 0, 0);
+    }
+    if (this.steeringWheel) {
+      this.steeringWheel.rotation.z = -this.steerAngle * 2.5;
+    }
 
     // Nitro flames
     if (this.flames) {
@@ -654,15 +585,18 @@ export class RemoteHypercar {
   }
 
   buildRemoteCarMesh() {
-    if (this.carModel) {
-      this.group.remove(this.carModel);
-    }
-
     const cfg = CAR_CONFIGS[this.carIndex] || CAR_CONFIGS[0];
-    const built = buildProceduralHypercar(cfg);
-    this.carModel = built.group;
-    this.nitroFlames = built.flames;
-    this.group.add(this.carModel);
+    hypercarModelManager.loadTemplate().then((template) => {
+      if (this.carModel) {
+        this.group.remove(this.carModel);
+      }
+      const built = buildRealisticHypercar(template, cfg);
+      this.carModel = built.group;
+      this.nitroFlames = built.flames;
+      this.group.add(this.carModel);
+    }).catch(err => {
+      console.error('Failed to build remote hypercar:', err);
+    });
   }
 
   setCarConfig(index) {

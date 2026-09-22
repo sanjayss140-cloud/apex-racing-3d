@@ -26,6 +26,7 @@ class ApexRacingGame {
     this.topSpeedReached = 0;
     this.elapsedTime = 0;
     this.inShowroom = false;
+    this.cameraMode = 'chase'; // 'chase' or 'cockpit' (in-seat)
 
     this.remoteCars = new Map(); // peerId -> RemoteHypercar
     this.lastTelemetrySend = 0;
@@ -180,6 +181,16 @@ class ApexRacingGame {
         }
       }
     );
+
+    // Connect to signaling immediately
+    this.network.init();
+  }
+
+  ensureHostLobbyReady() {
+    if (!this.network) return;
+    const roomCode = this.network.createRoom('Host', this.selectedCarIndex, this.activeMapIndex);
+    const codeDisplay = document.getElementById('room-code-display');
+    if (codeDisplay) codeDisplay.textContent = roomCode;
   }
 
   updateLobbyUI(players, selectedMap) {
@@ -420,6 +431,7 @@ class ApexRacingGame {
       document.body.classList.remove('in-showroom');
       document.getElementById('garage-selection-modal').classList.remove('active');
       document.getElementById('mode-selection-modal').classList.remove('active');
+      this.ensureHostLobbyReady();
       document.getElementById('lobby-modal').classList.add('active');
     });
 
@@ -430,6 +442,31 @@ class ApexRacingGame {
 
     document.getElementById('reset-car-btn').addEventListener('click', () => {
       this.resetCarToCheckpoint();
+    });
+
+    // Eye Button: Cockpit In-Seat View Toggle
+    const cameraBtn = document.getElementById('camera-view-btn');
+    const cameraLabel = document.getElementById('camera-view-label');
+    const toggleCameraView = () => {
+      this.cameraMode = this.cameraMode === 'cockpit' ? 'chase' : 'cockpit';
+      if (cameraLabel) {
+        cameraLabel.textContent = this.cameraMode === 'cockpit' ? 'Chase Cam' : 'Cockpit';
+      }
+      if (cameraBtn) {
+        cameraBtn.classList.toggle('active-mode', this.cameraMode === 'cockpit');
+      }
+    };
+
+    if (cameraBtn) {
+      cameraBtn.addEventListener('click', toggleCameraView);
+    }
+
+    // Keyboard Hotkey V / C for changing camera view
+    window.addEventListener('keydown', (e) => {
+      if (e.target && e.target.tagName === 'INPUT') return;
+      if (e.key === 'v' || e.key === 'V' || e.key === 'c' || e.key === 'C') {
+        toggleCameraView();
+      }
     });
 
     const muteBtn = document.getElementById('mute-btn');
@@ -449,6 +486,7 @@ class ApexRacingGame {
       tabJoin.classList.remove('active');
       hostPanel.style.display = 'block';
       joinPanel.style.display = 'none';
+      this.ensureHostLobbyReady();
     });
 
     tabJoin.addEventListener('click', () => {
@@ -501,17 +539,27 @@ class ApexRacingGame {
       });
     });
 
-    // 1-Click Copy Invite Link
+    // 1-Click Copy Invite Link (Rock solid with fallback)
     const copyLinkBtn = document.getElementById('copy-link-btn');
     const copyFeedback = document.getElementById('copy-feedback');
     copyLinkBtn.addEventListener('click', () => {
-      const shareUrl = this.network.getShareableLink();
-      navigator.clipboard.writeText(shareUrl).then(() => {
-        copyFeedback.textContent = 'Link copied to clipboard! Share with up to 5 friends 📋';
+      const shareUrl = this.network ? this.network.getShareableLink() : window.location.href;
+      
+      const onCopied = () => {
+        copyFeedback.textContent = '✅ Invite link copied! Share with friends 🏁';
+        copyFeedback.style.color = '#22c55e';
         setTimeout(() => { copyFeedback.textContent = ''; }, 4000);
-      }).catch(() => {
-        copyFeedback.textContent = shareUrl;
-      });
+      };
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(shareUrl).then(onCopied).catch(() => {
+          this.fallbackCopyText(shareUrl);
+          onCopied();
+        });
+      } else {
+        this.fallbackCopyText(shareUrl);
+        onCopied();
+      }
     });
 
     // Launch Race (Host in Multiplayer)
@@ -545,8 +593,50 @@ class ApexRacingGame {
 
     document.getElementById('switch-to-multi-btn').addEventListener('click', () => {
       document.getElementById('victory-modal').classList.remove('active');
+      this.ensureHostLobbyReady();
       document.getElementById('lobby-modal').classList.add('active');
     });
+
+    // Auto-detect invite link with ?room=
+    this.checkUrlInvite();
+  }
+
+  fallbackCopyText(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try {
+      document.execCommand('copy');
+    } catch (e) {
+      console.warn('Fallback copy failed', e);
+    }
+    document.body.removeChild(ta);
+  }
+
+  checkUrlInvite() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const room = params.get('room');
+      if (room) {
+        document.getElementById('mode-selection-modal').classList.remove('active');
+        document.getElementById('garage-selection-modal').classList.remove('active');
+        document.getElementById('lobby-modal').classList.add('active');
+        document.getElementById('tab-join').click();
+        const input = document.getElementById('join-room-input');
+        if (input) input.value = room;
+        const statusEl = document.getElementById('join-status');
+        if (statusEl) {
+          statusEl.textContent = `Room ${room} detected! Click Connect or choose car.`;
+          statusEl.style.color = '#38bdf8';
+        }
+      }
+    } catch (e) {
+      console.warn('Error reading URL search params:', e);
+    }
   }
 
   joinExistingRoom(code) {
@@ -834,26 +924,58 @@ class ApexRacingGame {
     const carPos = this.car.position;
     const forwardVec = new THREE.Vector3(Math.sin(this.car.heading), 0, Math.cos(this.car.heading));
     const speed = this.car.speed;
-
-    const lookAheadDist = Math.min(28, 6 + speed * 0.28);
-    const lookTarget = carPos.clone().addScaledVector(forwardVec, lookAheadDist);
-    this.cameraTarget.lerp(lookTarget, dt * 9);
-
-    const behindVec = forwardVec.clone().multiplyScalar(-1);
     const speedRatio = Math.min(1.2, speed / 139.0);
-    const chaseDist = 7.2 + speedRatio * 3.5;
-    const chaseHeight = 2.8 + speedRatio * 0.8;
 
-    const desiredCamPos = carPos.clone()
-      .addScaledVector(behindVec, chaseDist)
-      .add(new THREE.Vector3(0, chaseHeight, 0));
+    if (this.cameraMode === 'cockpit') {
+      // 1st-Person In-Seat Cockpit Driver View
+      const rightVec = new THREE.Vector3(Math.cos(this.car.heading), 0, -Math.sin(this.car.heading));
+      
+      // Seated inside cabin on left side, at eye level, looking forward
+      const seatPos = carPos.clone()
+        .addScaledVector(rightVec, -0.36)
+        .addScaledVector(forwardVec, -0.12)
+        .add(new THREE.Vector3(0, 0.95, 0));
 
-    this.camera.position.lerp(desiredCamPos, dt * 11);
-    this.camera.lookAt(this.cameraTarget);
+      // High-speed cockpit vibration sensation at 500+ KM/H
+      if (speed > 40) {
+        const shake = Math.min(0.018, (speed / 140.0) * 0.012);
+        seatPos.x += (Math.random() - 0.5) * shake;
+        seatPos.y += (Math.random() - 0.5) * shake;
+      }
 
-    const targetFOV = this.car.isNitro ? 84 : (62 + speedRatio * 16);
-    this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, targetFOV, dt * 6);
-    this.camera.updateProjectionMatrix();
+      this.camera.position.lerp(seatPos, dt * 26);
+
+      const lookAhead = Math.max(16, 10 + speed * 0.35);
+      const cockpitTarget = seatPos.clone()
+        .addScaledVector(forwardVec, lookAhead)
+        .add(new THREE.Vector3(0, -0.06, 0));
+      this.cameraTarget.lerp(cockpitTarget, dt * 22);
+      this.camera.lookAt(this.cameraTarget);
+
+      const targetFOV = this.car.isNitro ? 88 : (70 + speedRatio * 16);
+      this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, targetFOV, dt * 8);
+      this.camera.updateProjectionMatrix();
+    } else {
+      // 3rd-Person Chase Camera
+      const lookAheadDist = Math.min(28, 6 + speed * 0.28);
+      const lookTarget = carPos.clone().addScaledVector(forwardVec, lookAheadDist);
+      this.cameraTarget.lerp(lookTarget, dt * 9);
+
+      const behindVec = forwardVec.clone().multiplyScalar(-1);
+      const chaseDist = 7.2 + speedRatio * 3.5;
+      const chaseHeight = 2.8 + speedRatio * 0.8;
+
+      const desiredCamPos = carPos.clone()
+        .addScaledVector(behindVec, chaseDist)
+        .add(new THREE.Vector3(0, chaseHeight, 0));
+
+      this.camera.position.lerp(desiredCamPos, dt * 11);
+      this.camera.lookAt(this.cameraTarget);
+
+      const targetFOV = this.car.isNitro ? 84 : (62 + speedRatio * 16);
+      this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, targetFOV, dt * 6);
+      this.camera.updateProjectionMatrix();
+    }
 
     const overlay = document.getElementById('speed-overlay');
     if (overlay) {

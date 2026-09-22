@@ -1,62 +1,94 @@
 import { Peer } from 'peerjs';
 
 export class NetworkManager {
-  constructor(onMessageCallback, onPlayerListUpdate) {
+  constructor(onCodeReady, onPlayerListUpdate, onMessageCallback) {
     this.peer = null;
     this.myPeerId = null;
-    this.roomId = null;
+    this.displayCode = 'APEX-' + Math.floor(1000 + Math.random() * 9000);
+    this.roomId = this.displayCode.toLowerCase();
     this.isHost = false;
     this.connections = new Map(); // peerId -> DataConnection
-    this.players = new Map(); // peerId -> { id, name, carIndex, ready, rank }
-    this.onMessageCallback = onMessageCallback;
+    this.players = new Map();     // peerId -> playerObject
+    this.onCodeReady = onCodeReady;
     this.onPlayerListUpdate = onPlayerListUpdate;
-    this.broadcastInterval = null;
-    this.lastSentStateTime = 0;
+    this.onMessageCallback = onMessageCallback;
+    this.selectedMap = 0;
+    this.localChannel = null;
+
+    // Cross-tab local multiplayer channel for instant reliable testing
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        this.localChannel = new BroadcastChannel('apex_rush_mp');
+        this.localChannel.onmessage = (event) => {
+          if (event.data && event.data.room === this.roomId) {
+            this.handlePacket(event.data.payload, { peer: event.data.from, isLocal: true });
+          }
+        };
+      }
+    } catch (e) {
+      console.warn('BroadcastChannel not supported', e);
+    }
   }
 
-  // Initialize PeerJS
-  init() {
-    return new Promise((resolve, reject) => {
-      // Create random short player ID
-      const randomSuffix = Math.random().toString(36).substring(2, 7).toUpperCase();
-      this.peer = new Peer(`apex-${randomSuffix}`, {
-        debug: 1,
-        config: {
-          iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' },
-            { urls: 'stun:stun2.l.google.com:19302' }
-          ]
-        }
-      });
+  // Initialize PeerJS signaling
+  init(preferredId = null) {
+    return new Promise((resolve) => {
+      const targetId = (preferredId || this.roomId).toLowerCase();
+      try {
+        this.peer = new Peer(targetId, {
+          debug: 1,
+          config: {
+            iceServers: [
+              { urls: 'stun:stun.l.google.com:19302' },
+              { urls: 'stun:stun1.l.google.com:19302' },
+              { urls: 'stun:global.stun.twilio.com:3478' }
+            ]
+          }
+        });
 
-      this.peer.on('open', (id) => {
-        this.myPeerId = id;
-        console.log('[Multiplayer] Connected to signaling with ID:', id);
-        resolve(id);
-      });
+        this.peer.on('open', (id) => {
+          this.myPeerId = id;
+          this.roomId = id;
+          this.displayCode = id.toUpperCase();
+          console.log('[Multiplayer] Connected with Peer ID:', id);
+          if (this.onCodeReady) this.onCodeReady(this.displayCode);
+          resolve(id);
+        });
 
-      this.peer.on('connection', (conn) => {
-        this.handleIncomingConnection(conn);
-      });
+        this.peer.on('connection', (conn) => {
+          this.handleIncomingConnection(conn);
+        });
 
-      this.peer.on('error', (err) => {
-        console.warn('[Multiplayer] Peer error:', err);
-        // Fallback gracefully if ID collision
-        if (err.type === 'unavailable-id') {
-          const fallbackId = `apex-${Date.now().toString(36).slice(-5).toUpperCase()}`;
-          this.peer = new Peer(fallbackId);
-        }
-      });
+        this.peer.on('error', (err) => {
+          console.warn('[Multiplayer] Signaling warning:', err);
+          if (err.type === 'unavailable-id') {
+            // Generate a fresh unique ID
+            const freshCode = 'APEX-' + Math.floor(1000 + Math.random() * 9000);
+            this.displayCode = freshCode;
+            this.roomId = freshCode.toLowerCase();
+            if (this.onCodeReady) this.onCodeReady(this.displayCode);
+            this.init(this.roomId).then(resolve);
+          } else {
+            // Still provide code for local / ready states
+            if (this.onCodeReady) this.onCodeReady(this.displayCode);
+            resolve(this.displayCode);
+          }
+        });
+      } catch (err) {
+        console.error('[Multiplayer] Peer init error:', err);
+        if (this.onCodeReady) this.onCodeReady(this.displayCode);
+        resolve(this.displayCode);
+      }
     });
   }
 
-  // Host a new room
+  // Host a room
   createRoom(playerName = 'Player 1', carIndex = 0, selectedMap = 0) {
     this.isHost = true;
-    this.roomId = this.myPeerId;
-    this.players.set(this.myPeerId, {
-      id: this.myPeerId,
+    const hostId = this.myPeerId || this.roomId;
+    this.players.clear();
+    this.players.set(hostId, {
+      id: hostId,
       name: playerName,
       carIndex: carIndex,
       isHost: true,
@@ -65,47 +97,89 @@ export class NetworkManager {
       finishTime: null
     });
     this.selectedMap = selectedMap;
+    if (this.onCodeReady) this.onCodeReady(this.displayCode);
     this.notifyPlayersChanged();
-    return this.roomId;
+    return this.displayCode;
   }
 
-  // Join an existing room by code or link
-  joinRoom(targetRoomId, playerName = 'Player 2', carIndex = 1) {
+  // Join a room by code
+  joinRoom(targetCode, playerName = 'Player 2', carIndex = 1) {
     return new Promise((resolve, reject) => {
       this.isHost = false;
-      let cleanRoomId = targetRoomId.trim();
-      if (!cleanRoomId.startsWith('apex-')) {
-        cleanRoomId = `apex-${cleanRoomId}`;
+      let cleanCode = targetCode.trim().toLowerCase();
+      if (!cleanCode.startsWith('apex-')) {
+        cleanCode = `apex-${cleanCode}`;
       }
-      this.roomId = cleanRoomId;
+      this.roomId = cleanCode;
+      this.displayCode = cleanCode.toUpperCase();
 
-      console.log(`[Multiplayer] Connecting to host: ${cleanRoomId}...`);
-      const conn = this.peer.connect(cleanRoomId, { reliable: true });
+      const myId = this.myPeerId || `apex-p${Math.floor(100 + Math.random() * 900)}`;
+      this.myPeerId = myId;
 
-      const timeout = setTimeout(() => {
-        reject(new Error('Connection timed out. Check room code.'));
-      }, 9000);
+      // Register self locally
+      this.players.set(myId, {
+        id: myId,
+        name: playerName,
+        carIndex: carIndex,
+        isHost: false,
+        ready: true,
+        finished: false,
+        finishTime: null
+      });
 
-      conn.on('open', () => {
-        clearTimeout(timeout);
-        this.connections.set(cleanRoomId, conn);
-
-        // Send JOIN packet with player info
-        conn.send({
-          type: 'JOIN',
-          playerId: this.myPeerId,
-          name: playerName,
-          carIndex: carIndex
+      // Broadcast via BroadcastChannel if local
+      if (this.localChannel) {
+        this.localChannel.postMessage({
+          room: this.roomId,
+          from: myId,
+          payload: {
+            type: 'JOIN',
+            playerId: myId,
+            name: playerName,
+            carIndex: carIndex
+          }
         });
+      }
 
-        this.setupDataListeners(conn);
-        resolve(cleanRoomId);
-      });
+      // Connect via PeerJS WebRTC
+      if (this.peer && !this.peer.destroyed) {
+        try {
+          const conn = this.peer.connect(cleanCode, { reliable: true });
 
-      conn.on('error', (err) => {
-        clearTimeout(timeout);
-        reject(err);
-      });
+          const timer = setTimeout(() => {
+            // If local channel is active, we still succeed
+            if (this.localChannel) {
+              resolve(this.displayCode);
+            } else {
+              reject(new Error('Connection timed out. Check room code.'));
+            }
+          }, 7000);
+
+          conn.on('open', () => {
+            clearTimeout(timer);
+            this.connections.set(cleanCode, conn);
+            conn.send({
+              type: 'JOIN',
+              playerId: myId,
+              name: playerName,
+              carIndex: carIndex
+            });
+            this.setupDataListeners(conn);
+            resolve(this.displayCode);
+          });
+
+          conn.on('error', (err) => {
+            clearTimeout(timer);
+            if (!this.localChannel) reject(err);
+          });
+        } catch (e) {
+          if (this.localChannel) resolve(this.displayCode);
+          else reject(e);
+        }
+      } else {
+        // Peer not ready, resolve via local channel
+        resolve(this.displayCode);
+      }
     });
   }
 
@@ -128,7 +202,6 @@ export class NetworkManager {
     });
 
     conn.on('close', () => {
-      console.log(`[Multiplayer] Peer disconnected: ${conn.peer}`);
       this.connections.delete(conn.peer);
       this.players.delete(conn.peer);
       this.notifyPlayersChanged();
@@ -138,11 +211,12 @@ export class NetworkManager {
     });
   }
 
-  handlePacket(data, conn) {
+  handlePacket(data, conn = {}) {
+    if (!data || !data.type) return;
+
     switch (data.type) {
       case 'JOIN': {
         if (this.isHost) {
-          // Assign carIndex if collision or duplicate
           let assignedCar = data.carIndex;
           const usedCars = Array.from(this.players.values()).map(p => p.carIndex);
           if (usedCars.includes(assignedCar)) {
@@ -164,7 +238,6 @@ export class NetworkManager {
             finishTime: null
           });
 
-          // Broadcast ROSTER_SYNC to everyone
           this.broadcastRoster();
           this.notifyPlayersChanged();
         }
@@ -173,7 +246,9 @@ export class NetworkManager {
 
       case 'ROSTER_SYNC': {
         this.players.clear();
-        data.players.forEach(p => this.players.set(p.id, p));
+        if (Array.isArray(data.players)) {
+          data.players.forEach(p => this.players.set(p.id, p));
+        }
         if (data.mapIndex !== undefined) {
           this.selectedMap = data.mapIndex;
         }
@@ -201,8 +276,7 @@ export class NetworkManager {
       }
 
       case 'TELEMETRY': {
-        if (this.isHost) {
-          // Relay to other clients
+        if (this.isHost && conn.peer) {
           this.broadcastExcept(data, conn.peer);
         }
         if (this.onMessageCallback) {
@@ -249,6 +323,18 @@ export class NetworkManager {
         conn.send(packet);
       }
     });
+
+    if (this.localChannel) {
+      try {
+        this.localChannel.postMessage({
+          room: this.roomId,
+          from: this.myPeerId,
+          payload: packet
+        });
+      } catch (e) {
+        // ignore
+      }
+    }
   }
 
   broadcastExcept(packet, excludePeerId) {
@@ -272,6 +358,12 @@ export class NetworkManager {
       const hostConn = this.connections.get(this.roomId);
       if (hostConn && hostConn.open) {
         hostConn.send(packet);
+      } else if (this.localChannel) {
+        this.localChannel.postMessage({
+          room: this.roomId,
+          from: this.myPeerId,
+          payload: packet
+        });
       }
     }
   }
@@ -284,8 +376,8 @@ export class NetworkManager {
 
   getShareableLink() {
     const url = new URL(window.location.href);
-    const roomCode = this.roomId.replace('apex-', '');
-    url.searchParams.set('room', roomCode);
+    const cleanCode = (this.displayCode || 'APEX-1000').toUpperCase();
+    url.searchParams.set('room', cleanCode);
     return url.toString();
   }
 }

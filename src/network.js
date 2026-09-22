@@ -4,8 +4,9 @@ export class NetworkManager {
   constructor(onCodeReady, onPlayerListUpdate, onMessageCallback) {
     this.peer = null;
     this.myPeerId = null;
-    this.displayCode = 'APEX-' + Math.floor(1000 + Math.random() * 9000);
-    this.roomId = this.displayCode.toLowerCase();
+    // Pure 4-digit room code, e.g. 4936
+    this.displayCode = '' + Math.floor(1000 + Math.random() * 9000);
+    this.roomId = `apex-${this.displayCode}`;
     this.isHost = false;
     this.connections = new Map(); // peerId -> DataConnection
     this.players = new Map();     // peerId -> playerObject
@@ -49,8 +50,11 @@ export class NetworkManager {
         this.peer.on('open', (id) => {
           this.myPeerId = id;
           this.roomId = id;
-          this.displayCode = id.toUpperCase();
-          console.log('[Multiplayer] Connected with Peer ID:', id);
+          const match = id.match(/\d{4}/);
+          if (match) {
+            this.displayCode = match[0];
+          }
+          console.log('[Multiplayer] Connected with Peer ID:', id, 'Code:', this.displayCode);
           if (this.onCodeReady) this.onCodeReady(this.displayCode);
           resolve(id);
         });
@@ -62,14 +66,12 @@ export class NetworkManager {
         this.peer.on('error', (err) => {
           console.warn('[Multiplayer] Signaling warning:', err);
           if (err.type === 'unavailable-id') {
-            // Generate a fresh unique ID
-            const freshCode = 'APEX-' + Math.floor(1000 + Math.random() * 9000);
-            this.displayCode = freshCode;
-            this.roomId = freshCode.toLowerCase();
+            // Generate a fresh unique 4-digit ID
+            this.displayCode = '' + Math.floor(1000 + Math.random() * 9000);
+            this.roomId = `apex-${this.displayCode}`;
             if (this.onCodeReady) this.onCodeReady(this.displayCode);
             this.init(this.roomId).then(resolve);
           } else {
-            // Still provide code for local / ready states
             if (this.onCodeReady) this.onCodeReady(this.displayCode);
             resolve(this.displayCode);
           }
@@ -106,12 +108,9 @@ export class NetworkManager {
   joinRoom(targetCode, playerName = 'Player 2', carIndex = 1) {
     return new Promise((resolve, reject) => {
       this.isHost = false;
-      let cleanCode = targetCode.trim().toLowerCase();
-      if (!cleanCode.startsWith('apex-')) {
-        cleanCode = `apex-${cleanCode}`;
-      }
-      this.roomId = cleanCode;
-      this.displayCode = cleanCode.toUpperCase();
+      const digits = targetCode.trim().replace(/^apex-/i, '');
+      this.displayCode = digits;
+      this.roomId = `apex-${digits}`;
 
       const myId = this.myPeerId || `apex-p${Math.floor(100 + Math.random() * 900)}`;
       this.myPeerId = myId;
@@ -376,7 +375,7 @@ export class NetworkManager {
 
   getShareableLink() {
     const url = new URL(window.location.href);
-    const cleanCode = (this.displayCode || 'APEX-1000').toUpperCase();
+    const cleanCode = (this.displayCode || '4936');
     url.searchParams.set('room', cleanCode);
     return url.toString();
   }

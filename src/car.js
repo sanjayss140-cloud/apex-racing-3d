@@ -584,6 +584,14 @@ export class RemoteHypercar {
     this.buildNameplate();
   }
 
+  setInitialPlacement(x, y, z, heading) {
+    this.targetPos.set(x, y, z);
+    this.group.position.set(x, y, z);
+    this.targetHeading = heading;
+    this.currentHeading = heading;
+    this.group.rotation.set(0, heading, 0);
+  }
+
   buildRemoteCarMesh() {
     const cfg = CAR_CONFIGS[this.carIndex] || CAR_CONFIGS[0];
     hypercarModelManager.loadTemplate().then((template) => {

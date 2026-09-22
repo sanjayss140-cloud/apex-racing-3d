@@ -28,6 +28,10 @@ class ApexRacingGame {
     this.inShowroom = false;
     this.cameraMode = 'chase'; // 'chase' or 'cockpit' (in-seat)
 
+    // Multiplayer Multi-Map Tour State
+    this.multiStage = 0; // 0 = Desert, 1 = Tokyo, 2 = Volcano
+    this.finishedStageRacers = new Set();
+
     this.remoteCars = new Map(); // peerId -> RemoteHypercar
     this.lastTelemetrySend = 0;
 
@@ -55,12 +59,11 @@ class ApexRacingGame {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
 
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || ('ontouchstart' in window);
-    this.isMobile = isMobile;
-    this.renderer.setPixelRatio(isMobile ? Math.min(window.devicePixelRatio, 1.25) : Math.min(window.devicePixelRatio, 2));
+    this.isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || ('ontouchstart' in window);
+    this.renderer.setPixelRatio(this.isMobile ? Math.min(window.devicePixelRatio, 1.25) : Math.min(window.devicePixelRatio, 2));
 
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = isMobile ? THREE.BasicShadowMap : THREE.PCFShadowMap;
+    this.renderer.shadowMap.type = this.isMobile ? THREE.BasicShadowMap : THREE.PCFShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.3;
     this.container.appendChild(this.renderer.domElement);
@@ -111,19 +114,66 @@ class ApexRacingGame {
     this.track.highlightCheckpoint(this.activeCheckpoint);
   }
 
-  resetCarToStart() {
-    if (this.track && this.track.roadPoints && this.track.roadPoints.length > 0) {
-      const p0 = this.track.roadPoints[0];
-      const heading0 = this.track.getHeadingAt(0);
-      this.car.reset(p0.x, p0.z, heading0);
+  // Staggered Racing Starting Grid (F1 / Le Mans slot placement)
+  getStartingGridTransform(slotIndex = 0) {
+    if (!this.track || !this.track.roadPoints || this.track.roadPoints.length === 0) {
+      return { x: 0, z: 0, heading: 0 };
+    }
+    const p0 = this.track.roadPoints[0];
+    const heading0 = this.track.getHeadingAt(0);
+    const forwardVec = new THREE.Vector3(Math.sin(heading0), 0, Math.cos(heading0));
+    const rightVec = new THREE.Vector3(Math.cos(heading0), 0, -Math.sin(heading0));
 
-      const forwardVec = new THREE.Vector3(Math.sin(heading0), 0, Math.cos(heading0));
-      const behindVec = forwardVec.clone().multiplyScalar(-7.2);
-      this.camera.position.copy(this.car.position).add(behindVec).add(new THREE.Vector3(0, 2.8, 0));
-      this.cameraTarget.copy(this.car.position).addScaledVector(forwardVec, 8);
-      this.camera.lookAt(this.cameraTarget);
-    } else {
-      this.car.reset(0, 35, Math.PI);
+    // Staggered grid slots:
+    // Slot 0 (Pole): left -2.4m, forward -6m
+    // Slot 1: right +2.4m, forward -18m
+    // Slot 2: left -2.4m, forward -30m
+    // Slot 3: right +2.4m, forward -42m
+    // Slot 4: left -2.4m, forward -54m
+    // Slot 5: right +2.4m, forward -66m
+    const isRight = (slotIndex % 2) === 1;
+    const lateralOffset = isRight ? 2.4 : -2.4;
+    const longitudinalOffset = -6.0 - (slotIndex * 12.0);
+
+    const pos = p0.clone()
+      .addScaledVector(forwardVec, longitudinalOffset)
+      .addScaledVector(rightVec, lateralOffset);
+
+    return { x: pos.x, z: pos.z, heading: heading0 };
+  }
+
+  getMySlotIndex() {
+    if (this.gameMode !== 'multiplayer' || !this.network || !this.network.players) return 0;
+    const playersList = Array.from(this.network.players.values());
+    const idx = playersList.findIndex(p => p.id === this.network.myPeerId);
+    return idx >= 0 ? idx : 0;
+  }
+
+  getPlayerSlotIndex(playerId) {
+    if (!this.network || !this.network.players) return 0;
+    const playersList = Array.from(this.network.players.values());
+    const idx = playersList.findIndex(p => p.id === playerId);
+    return idx >= 0 ? idx : 0;
+  }
+
+  resetCarToStart(customSlot = null) {
+    const slotIdx = customSlot !== null ? customSlot : this.getMySlotIndex();
+    const grid = this.getStartingGridTransform(slotIdx);
+    this.car.reset(grid.x, grid.z, grid.heading);
+
+    const forwardVec = new THREE.Vector3(Math.sin(grid.heading), 0, Math.cos(grid.heading));
+    const behindVec = forwardVec.clone().multiplyScalar(-7.2);
+    this.camera.position.copy(this.car.position).add(behindVec).add(new THREE.Vector3(0, 2.8, 0));
+    this.cameraTarget.copy(this.car.position).addScaledVector(forwardVec, 8);
+    this.camera.lookAt(this.cameraTarget);
+
+    // Place all remote opponent cars on their respective distinct slots!
+    if (this.remoteCars && this.network && this.network.players) {
+      this.remoteCars.forEach((rCar, pId) => {
+        const rSlot = this.getPlayerSlotIndex(pId);
+        const rGrid = this.getStartingGridTransform(rSlot);
+        rCar.setInitialPlacement(rGrid.x, 0.05, rGrid.z, rGrid.heading);
+      });
     }
   }
 
@@ -169,9 +219,31 @@ class ApexRacingGame {
         if (data.type === 'START_RACE') {
           document.getElementById('lobby-modal').classList.remove('active');
           document.getElementById('mode-selection-modal').classList.remove('active');
+          this.multiStage = 0;
+          this.finishedStageRacers.clear();
+          this.hideWaitingOnGrid();
           if (data.mapIndex !== undefined && data.mapIndex !== this.activeMapIndex) {
             this.switchMap(data.mapIndex);
           }
+          this.startRaceSequence();
+        } else if (data.type === 'STAGE_PROGRESS') {
+          this.finishedStageRacers.add(data.playerId);
+          const totalRacers = this.network.players.size;
+          const finishedCount = this.finishedStageRacers.size;
+          const nextMapName = this.multiStage === 1 ? 'TOKYO' : (this.multiStage === 2 ? 'VOLCANO' : 'NEXT MAP');
+          this.showWaitingOnGrid(
+            `STAGE COMPLETED! 🏁`,
+            `ARRIVED AT ${nextMapName} GRID • WAITING FOR RACERS (${finishedCount}/${totalRacers})...`
+          );
+          if (this.network.isHost) {
+            this.checkAllPlayersStageFinished(this.multiStage);
+          }
+        } else if (data.type === 'START_NEXT_STAGE') {
+          this.hideWaitingOnGrid();
+          this.finishedStageRacers.clear();
+          this.multiStage = data.mapIndex;
+          this.switchMap(data.mapIndex);
+          this.resetCarToStart(this.getMySlotIndex());
           this.startRaceSequence();
         } else if (data.type === 'TELEMETRY') {
           const rCar = this.remoteCars.get(data.playerId);
@@ -740,15 +812,50 @@ class ApexRacingGame {
       this.showFinalChampionshipPodium();
     } else {
       // Multiplayer Finish
-      const myPlayer = this.network.players.get(this.network.myPeerId);
+      const myId = this.network.myPeerId;
+      const myPlayer = this.network.players.get(myId);
       if (myPlayer) {
         myPlayer.finished = true;
         myPlayer.finishTime = this.elapsedTime;
       }
 
+      // Check if there are more stages in the 3-Map Tour (Map 0 -> Map 1 -> Map 2)
+      if (this.multiStage < 2) {
+        const nextMapIndex = this.multiStage + 1;
+        this.multiStage = nextMapIndex;
+        this.finishedStageRacers.add(myId);
+
+        // Move player immediately to the next map's starting grid!
+        this.switchMap(nextMapIndex);
+        this.resetCarToStart(this.getMySlotIndex());
+        this.isCountingDown = true;
+        this.car.speed = 0;
+        this.car.forwardSpeed = 0;
+        this.car.velocity.set(0, 0, 0);
+
+        const nextMapName = nextMapIndex === 1 ? 'TOKYO' : 'VOLCANO';
+        this.showWaitingOnGrid(
+          `MAP ${nextMapIndex} COMPLETED! 🏁`,
+          `ARRIVED AT ${nextMapName} GRID • WAITING FOR RACERS (${this.finishedStageRacers.size}/${this.network.players.size})...`
+        );
+
+        this.network.broadcast({
+          type: 'STAGE_PROGRESS',
+          playerId: myId,
+          completedStage: this.multiStage - 1,
+          time: this.elapsedTime
+        });
+
+        if (this.network.isHost) {
+          this.checkAllPlayersStageFinished(nextMapIndex);
+        }
+        return;
+      }
+
+      // If finished all 3 stages: show Grand Prix Championship Podium!
       this.network.broadcast({
         type: 'RACE_FINISH',
-        playerId: this.network.myPeerId,
+        playerId: myId,
         time: this.elapsedTime
       });
 
@@ -757,6 +864,39 @@ class ApexRacingGame {
         document.getElementById('victory-modal').classList.add('active');
       }, 1200);
     }
+  }
+
+  checkAllPlayersStageFinished(nextMapIndex) {
+    if (!this.network || !this.network.isHost) return;
+    const totalRacers = this.network.players.size;
+    if (this.finishedStageRacers.size >= totalRacers) {
+      this.finishedStageRacers.clear();
+      setTimeout(() => {
+        this.network.broadcast({
+          type: 'START_NEXT_STAGE',
+          mapIndex: nextMapIndex
+        });
+        this.hideWaitingOnGrid();
+        this.multiStage = nextMapIndex;
+        this.switchMap(nextMapIndex);
+        this.resetCarToStart(this.getMySlotIndex());
+        this.startRaceSequence();
+      }, 1600);
+    }
+  }
+
+  showWaitingOnGrid(title, statusMsg) {
+    const banner = document.getElementById('multi-waiting-banner');
+    const titleEl = document.getElementById('waiting-banner-title');
+    const statusEl = document.getElementById('waiting-banner-status');
+    if (titleEl) titleEl.textContent = title;
+    if (statusEl) statusEl.textContent = statusMsg;
+    if (banner) banner.classList.add('active');
+  }
+
+  hideWaitingOnGrid() {
+    const banner = document.getElementById('multi-waiting-banner');
+    if (banner) banner.classList.remove('active');
   }
 
   showStageTransition(stageIndex) {

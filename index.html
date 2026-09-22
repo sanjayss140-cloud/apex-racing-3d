@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>APEX RUSH 3D — 500 KM/H Multiplayer Hypercar Circuit</title>
-    <script type="module" crossorigin src="./assets/index-BZOq-MAl.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-BUovwtzc.css">
+    <script type="module" crossorigin src="./assets/index-C8XWZ2UE.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-BSO2ocOM.css">
   </head>
   <body>
     <!-- WebGL Canvas Container -->
@@ -303,7 +303,7 @@
         <div id="join-panel" class="lobby-section" style="display: none;">
           <div class="section-title">ENTER ROOM CODE OR INVITE CODE</div>
           <div class="join-input-group">
-            <input type="text" id="join-room-input" placeholder="e.g. APEX-7821 or 7821" maxlength="20" />
+            <input type="text" id="join-room-input" placeholder="e.g. 4936" maxlength="6" />
             <button id="join-room-btn" class="btn-join-submit">CONNECT TO ROOM</button>
           </div>
           <div id="join-status" class="join-status"></div>
@@ -463,6 +463,15 @@
             🌐 PLAY WITH FRIENDS (MULTIPLAYER)
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- Multiplayer Next Map Waiting Banner -->
+    <div id="multi-waiting-banner" class="multi-waiting-banner glass">
+      <div class="waiting-icon">⏳</div>
+      <div class="waiting-text-group">
+        <div id="waiting-banner-title" class="waiting-title">MAP 1 COMPLETED! 🏁</div>
+        <div id="waiting-banner-status" class="waiting-status">ARRIVED AT TOKYO GRID • WAITING FOR RACERS...</div>
       </div>
     </div>
 

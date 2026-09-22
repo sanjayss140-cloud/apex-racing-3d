@@ -737,6 +737,12 @@ export function buildProceduralHypercar(cfg) {
     });
   }
 
+  rootGroup.traverse(child => {
+    if (child.isMesh) {
+      child.frustumCulled = false;
+    }
+  });
+
   return {
     group: rootGroup,
     wheelFL,

@@ -87,6 +87,14 @@ class ApexRacingGame {
     this.sunLight.shadow.bias = -0.0004;
 
     this.scene.add(this.sunLight);
+    this.scene.add(this.sunLight.target);
+
+    // Dedicated Showroom Studio SpotLight
+    this.showroomLight = new THREE.SpotLight(0xffffff, 4.2, 50, Math.PI / 3, 0.35, 1.2);
+    this.showroomLight.target = new THREE.Object3D();
+    this.showroomLight.visible = false;
+    this.scene.add(this.showroomLight);
+    this.scene.add(this.showroomLight.target);
 
     window.addEventListener('resize', () => this.onResize());
   }
@@ -307,6 +315,30 @@ class ApexRacingGame {
     bindTouch('touch-handbrake', 'brake');
     bindTouch('touch-nitro', 'nitro');
 
+    // Showroom 360-degree Interactive Drag Orbit
+    let isDraggingShowroom = false;
+    let prevPointerX = 0;
+    window.addEventListener('pointerdown', (e) => {
+      if (this.inShowroom && !e.target.closest('.showroom-bottom-dock') && !e.target.closest('.showroom-top-hud')) {
+        isDraggingShowroom = true;
+        this.isInteractingShowroom = true;
+        prevPointerX = e.clientX;
+      }
+    });
+    window.addEventListener('pointermove', (e) => {
+      if (this.inShowroom && isDraggingShowroom) {
+        const dx = e.clientX - prevPointerX;
+        prevPointerX = e.clientX;
+        this.showroomAngle = (this.showroomAngle || 0) - dx * 0.008;
+      }
+    });
+    const stopShowroomDrag = () => {
+      isDraggingShowroom = false;
+      this.isInteractingShowroom = false;
+    };
+    window.addEventListener('pointerup', stopShowroomDrag);
+    window.addEventListener('pointercancel', stopShowroomDrag);
+
     window.addEventListener('pointerdown', () => audio.ensureContext(), { once: true });
   }
 
@@ -321,6 +353,7 @@ class ApexRacingGame {
   openCarShowroom(confirmLabel = '🚀 START RACE') {
     this.inShowroom = true;
     this.showroomAngle = 0;
+    this.resetCarToStart();
     document.body.classList.add('in-showroom');
     this.updateShowroomActiveCar(this.selectedCarIndex);
     const garageModal = document.getElementById('garage-selection-modal');
@@ -777,18 +810,35 @@ class ApexRacingGame {
 
   updateCamera(dt) {
     if (this.inShowroom) {
-      this.showroomAngle = (this.showroomAngle || 0) + dt * 0.45;
-      const dist = 5.2;
-      const height = 1.35;
+      if (!this.isInteractingShowroom) {
+        this.showroomAngle = (this.showroomAngle || 0) + dt * 0.35;
+      }
+      const dist = 5.4;
+      const height = 1.45;
       const cx = this.car.position.x + Math.sin(this.showroomAngle) * dist;
       const cz = this.car.position.z + Math.cos(this.showroomAngle) * dist;
       const cy = this.car.position.y + height;
       this.camera.position.set(cx, cy, cz);
-      this.cameraTarget.copy(this.car.position).add(new THREE.Vector3(0, 0.42, 0));
+      this.cameraTarget.copy(this.car.position).add(new THREE.Vector3(0, 0.48, 0));
       this.camera.lookAt(this.cameraTarget);
       this.camera.fov = 46;
       this.camera.updateProjectionMatrix();
+
+      if (this.showroomLight) {
+        this.showroomLight.visible = true;
+        this.showroomLight.position.set(
+          this.car.position.x + Math.sin(this.showroomAngle + 0.8) * 6,
+          this.car.position.y + 5.5,
+          this.car.position.z + Math.cos(this.showroomAngle + 0.8) * 6
+        );
+        this.showroomLight.target.position.copy(this.car.position);
+        this.showroomLight.target.updateMatrixWorld();
+      }
       return;
+    } else {
+      if (this.showroomLight) {
+        this.showroomLight.visible = false;
+      }
     }
 
     const carPos = this.car.position;
@@ -837,6 +887,13 @@ class ApexRacingGame {
 
     const dt = Math.min(this.clock.getDelta(), 0.05);
 
+    // Dynamic Sunlight tracking car
+    if (this.sunLight && this.car) {
+      this.sunLight.position.set(this.car.position.x + 60, 65, this.car.position.z - 50);
+      this.sunLight.target.position.copy(this.car.position);
+      this.sunLight.target.updateMatrixWorld();
+    }
+
     // 1. Timer
     if (!this.raceFinished && !this.isCountingDown && this.raceStartTime) {
       this.elapsedTime = (performance.now() - this.raceStartTime) / 1000;
@@ -849,6 +906,12 @@ class ApexRacingGame {
       this.car.speed = 0;
       this.car.forwardSpeed = 0;
       this.car.lateralSpeed = 0;
+      this.car.group.position.copy(this.car.position);
+      this.car.group.rotation.set(0, this.car.heading, 0);
+      if (this.car.shadowBlob) {
+        this.car.shadowBlob.position.set(this.car.position.x, 0.03, this.car.position.z);
+        this.car.shadowBlob.rotation.z = -this.car.heading;
+      }
       if (this.car.inputs.forward && this.isCountingDown) {
         this.car.rpm = THREE.MathUtils.lerp(this.car.rpm, 5500, dt * 8);
         audio.updateEngine(this.car.rpm, 0, false);

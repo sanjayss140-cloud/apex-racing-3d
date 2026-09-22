@@ -143,6 +143,8 @@ export class Hypercar {
     this.bodyMeshes = [];
 
     this.group = new THREE.Group();
+    this.group.position.copy(this.position);
+    this.group.rotation.set(0, this.heading, 0);
     this.scene.add(this.group);
 
     this.carModelWrapper = new THREE.Group();
@@ -194,6 +196,12 @@ export class Hypercar {
     this.bodyMeshes = built.bodyMeshes;
 
     this.carModelWrapper.add(this.currentCarMeshGroup);
+    this.group.position.copy(this.position);
+    this.group.rotation.set(0, this.heading, 0);
+    if (this.shadowBlob) {
+      this.shadowBlob.position.set(this.position.x, 0.03, this.position.z);
+      this.shadowBlob.rotation.z = -this.heading;
+    }
     this.isReady = true;
     this.readyCallbacks.forEach(cb => cb());
     this.readyCallbacks = [];
@@ -607,9 +615,20 @@ export class Hypercar {
     this.position.set(x, 0.05, z);
     this.velocity.set(0, 0, 0);
     this.speed = 0;
+    this.forwardSpeed = 0;
+    this.lateralSpeed = 0;
     this.heading = heading;
     this.steerAngle = 0;
     this.nitroFuel = 100;
+    this.group.position.copy(this.position);
+    this.group.rotation.set(0, this.heading, 0);
+    if (this.carModelWrapper) {
+      this.carModelWrapper.rotation.set(0, 0, 0);
+    }
+    if (this.shadowBlob) {
+      this.shadowBlob.position.set(this.position.x, 0.03, this.position.z);
+      this.shadowBlob.rotation.z = -this.heading;
+    }
   }
 }
 

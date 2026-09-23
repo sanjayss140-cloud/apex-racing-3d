@@ -767,6 +767,65 @@ body, html {
   border-color: #00f0ff;
 }
 
+/* Guest Waiting Box */
+.guest-waiting-box {
+  flex: 2;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(0, 240, 255, 0.4);
+  border-radius: 14px;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 0 24px rgba(0, 240, 255, 0.2);
+  animation: pulseWaiting 2s infinite ease-in-out;
+}
+
+@keyframes pulseWaiting {
+  0%, 100% {
+    border-color: rgba(0, 240, 255, 0.4);
+    box-shadow: 0 0 16px rgba(0, 240, 255, 0.2);
+  }
+  50% {
+    border-color: rgba(0, 240, 255, 0.85);
+    box-shadow: 0 0 28px rgba(0, 240, 255, 0.45);
+  }
+}
+
+.guest-waiting-spinner {
+  width: 22px;
+  height: 22px;
+  border: 3px solid rgba(0, 240, 255, 0.25);
+  border-top-color: #00f0ff;
+  border-radius: 50%;
+  animation: spinWait 0.85s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spinWait {
+  to { transform: rotate(360deg); }
+}
+
+.guest-waiting-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.guest-waiting-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 0.92rem;
+  color: #00f0ff;
+  letter-spacing: 0.04em;
+}
+
+.guest-waiting-sub {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
 /* Join Input */
 .join-input-group {
   display: flex;

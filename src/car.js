@@ -638,7 +638,21 @@ export class RemoteHypercar {
     const sprite = new THREE.Sprite(mat);
     sprite.scale.set(3.2, 0.8, 1);
     sprite.position.set(0, 1.9, 0);
+    this.nameplateSprite = sprite;
     this.group.add(sprite);
+  }
+
+  updatePlayerInfo(info) {
+    if (info.name && info.name !== this.playerName) {
+      this.playerName = info.name;
+      if (this.nameplateSprite) {
+        this.group.remove(this.nameplateSprite);
+      }
+      this.buildNameplate();
+    }
+    if (info.carIndex !== undefined && info.carIndex !== this.carIndex) {
+      this.setCarConfig(info.carIndex);
+    }
   }
 
   updateTelemetry(data) {
@@ -657,8 +671,13 @@ export class RemoteHypercar {
   }
 
   update(dt) {
-    this.group.position.lerp(this.targetPos, dt * 16);
-    this.currentHeading = THREE.MathUtils.lerp(this.currentHeading, this.targetHeading, dt * 14);
+    if (this.group.position.distanceTo(this.targetPos) > 25) {
+      this.group.position.copy(this.targetPos);
+      this.currentHeading = this.targetHeading;
+    } else {
+      this.group.position.lerp(this.targetPos, dt * 16);
+      this.currentHeading = THREE.MathUtils.lerp(this.currentHeading, this.targetHeading, dt * 14);
+    }
     this.group.rotation.set(0, this.currentHeading, 0);
   }
 

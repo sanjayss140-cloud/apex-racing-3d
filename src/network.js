@@ -9,6 +9,7 @@ export class NetworkManager {
     this.roomId = `apex-${this.displayCode}`;
     this.isHost = false;
     this.connections = new Map(); // peerId -> DataConnection
+    this.hostConn = null;
     this.players = new Map();     // peerId -> playerObject
     this.onCodeReady = onCodeReady;
     this.onPlayerListUpdate = onPlayerListUpdate;
@@ -21,8 +22,8 @@ export class NetworkManager {
       if (typeof BroadcastChannel !== 'undefined') {
         this.localChannel = new BroadcastChannel('apex_rush_mp');
         this.localChannel.onmessage = (event) => {
-          if (event.data && event.data.room === this.roomId) {
-            this.handlePacket(event.data.payload, { peer: event.data.from, isLocal: true });
+          if (event.data && event.data.room === this.roomId && event.data.from !== this.myPeerId) {
+            this.handlePacket(event.data.payload, { peer: event.data.from, from: event.data.from, isLocal: true });
           }
         };
       }
@@ -85,7 +86,7 @@ export class NetworkManager {
   }
 
   // Host a room
-  createRoom(playerName = 'Player 1', carIndex = 0, selectedMap = 0) {
+  createRoom(playerName = 'Host', carIndex = 0, selectedMap = 0) {
     this.isHost = true;
     const hostId = this.myPeerId || this.roomId;
     this.players.clear();
@@ -105,12 +106,17 @@ export class NetworkManager {
   }
 
   // Join a room by code
-  joinRoom(targetCode, playerName = 'Player 2', carIndex = 1) {
+  joinRoom(targetCode, playerName = 'Racer', carIndex = 1) {
     return new Promise((resolve, reject) => {
       this.isHost = false;
-      const digits = targetCode.trim().replace(/^apex-/i, '');
+      const digits = (targetCode || '').toString().trim().replace(/^apex-/i, '').replace(/[^0-9]/g, '');
+      if (!digits) {
+        reject(new Error('Invalid 4-digit room code'));
+        return;
+      }
       this.displayCode = digits;
-      this.roomId = `apex-${digits}`;
+      const hostPeerId = `apex-${digits}`;
+      this.roomId = hostPeerId;
 
       const myId = this.myPeerId || `apex-p${Math.floor(100 + Math.random() * 900)}`;
       this.myPeerId = myId;
@@ -143,10 +149,9 @@ export class NetworkManager {
       // Connect via PeerJS WebRTC
       if (this.peer && !this.peer.destroyed) {
         try {
-          const conn = this.peer.connect(cleanCode, { reliable: true });
+          const conn = this.peer.connect(hostPeerId, { reliable: true });
 
           const timer = setTimeout(() => {
-            // If local channel is active, we still succeed
             if (this.localChannel) {
               resolve(this.displayCode);
             } else {
@@ -156,7 +161,8 @@ export class NetworkManager {
 
           conn.on('open', () => {
             clearTimeout(timer);
-            this.connections.set(cleanCode, conn);
+            this.connections.set(hostPeerId, conn);
+            this.hostConn = conn;
             conn.send({
               type: 'JOIN',
               playerId: myId,
@@ -176,7 +182,6 @@ export class NetworkManager {
           else reject(e);
         }
       } else {
-        // Peer not ready, resolve via local channel
         resolve(this.displayCode);
       }
     });
@@ -275,9 +280,29 @@ export class NetworkManager {
       }
 
       case 'TELEMETRY': {
-        if (this.isHost && conn.peer) {
-          this.broadcastExcept(data, conn.peer);
+        if (this.isHost) {
+          const fromPeer = conn.peer || conn.from;
+          if (fromPeer) {
+            this.broadcastExcept(data, fromPeer);
+          }
         }
+        if (this.onMessageCallback) {
+          this.onMessageCallback(data);
+        }
+        break;
+      }
+
+      case 'STAGE_PROGRESS': {
+        if (this.isHost) {
+          this.broadcast(data);
+        }
+        if (this.onMessageCallback) {
+          this.onMessageCallback(data);
+        }
+        break;
+      }
+
+      case 'START_NEXT_STAGE': {
         if (this.onMessageCallback) {
           this.onMessageCallback(data);
         }
@@ -304,6 +329,38 @@ export class NetworkManager {
         if (this.onMessageCallback) {
           this.onMessageCallback(data);
         }
+    }
+  }
+
+  sendCarSelection(carIndex) {
+    const myPlayer = this.players.get(this.myPeerId);
+    if (myPlayer) {
+      myPlayer.carIndex = carIndex;
+    }
+
+    const packet = {
+      type: 'CAR_SELECT',
+      playerId: this.myPeerId,
+      carIndex: carIndex
+    };
+
+    if (this.isHost) {
+      this.broadcastRoster();
+      this.notifyPlayersChanged();
+    } else {
+      if (this.hostConn && this.hostConn.open) {
+        this.hostConn.send(packet);
+      }
+      this.connections.forEach((conn) => {
+        if (conn.open) conn.send(packet);
+      });
+      if (this.localChannel) {
+        this.localChannel.postMessage({
+          room: this.roomId,
+          from: this.myPeerId,
+          payload: packet
+        });
+      }
     }
   }
 
@@ -342,6 +399,13 @@ export class NetworkManager {
         conn.send(packet);
       }
     });
+    if (this.localChannel) {
+      this.localChannel.postMessage({
+        room: this.roomId,
+        from: excludePeerId,
+        payload: packet
+      });
+    }
   }
 
   sendTelemetry(telemetry) {
@@ -354,16 +418,22 @@ export class NetworkManager {
     if (this.isHost) {
       this.broadcast(packet);
     } else {
-      const hostConn = this.connections.get(this.roomId);
-      if (hostConn && hostConn.open) {
-        hostConn.send(packet);
-      } else if (this.localChannel) {
-        this.localChannel.postMessage({
-          room: this.roomId,
-          from: this.myPeerId,
-          payload: packet
-        });
+      if (this.hostConn && this.hostConn.open) {
+        this.hostConn.send(packet);
       }
+      this.connections.forEach((conn) => {
+        if (conn.open) {
+          conn.send(packet);
+        }
+      });
+    }
+
+    if (this.localChannel) {
+      this.localChannel.postMessage({
+        room: this.roomId,
+        from: this.myPeerId,
+        payload: packet
+      });
     }
   }
 
@@ -375,7 +445,7 @@ export class NetworkManager {
 
   getShareableLink() {
     const url = new URL(window.location.href);
-    const cleanCode = (this.displayCode || '4936');
+    const cleanCode = (this.displayCode || '4936').replace(/^apex-/i, '').replace(/[^0-9]/g, '');
     url.searchParams.set('room', cleanCode);
     return url.toString();
   }

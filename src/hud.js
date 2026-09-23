@@ -222,6 +222,19 @@ export class RacingHUD {
     }, 2800);
   }
 
+  showNotification(title, sub = '') {
+    if (!this.splitNotificationEl) return;
+    if (this.splitTimer) clearTimeout(this.splitTimer);
+    this.splitNotificationEl.innerHTML = `
+      <div class="split-title">${title}</div>
+      ${sub ? `<div class="split-sub">${sub}</div>` : ''}
+    `;
+    this.splitNotificationEl.classList.add('visible');
+    this.splitTimer = setTimeout(() => {
+      this.splitNotificationEl.classList.remove('visible');
+    }, 3200);
+  }
+
   drawMinimap(carPos, carHeading, checkpoints, activeCPId) {
     if (!this.minimapCtx) return;
     const ctx = this.minimapCtx;

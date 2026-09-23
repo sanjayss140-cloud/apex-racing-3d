@@ -212,42 +212,64 @@ class ApexRacingGame {
         const codeDisplay = document.getElementById('room-code-display');
         if (codeDisplay) codeDisplay.textContent = code;
       },
-      (players, selectedMap) => {
-        this.updateLobbyUI(players, selectedMap);
+      (players, isHost, selectedMap) => {
+        this.updateLobbyUI(players, isHost, selectedMap);
       },
       (data) => {
         if (data.type === 'START_RACE') {
+          this.gameMode = 'multiplayer';
           document.getElementById('lobby-modal').classList.remove('active');
           document.getElementById('mode-selection-modal').classList.remove('active');
+          document.getElementById('garage-selection-modal').classList.remove('active');
           this.multiStage = 0;
           this.finishedStageRacers.clear();
           this.hideWaitingOnGrid();
           if (data.mapIndex !== undefined && data.mapIndex !== this.activeMapIndex) {
             this.switchMap(data.mapIndex);
           }
+          this.resetCarToStart(this.getMySlotIndex());
           this.startRaceSequence();
         } else if (data.type === 'STAGE_PROGRESS') {
           this.finishedStageRacers.add(data.playerId);
           const totalRacers = this.network.players.size;
           const finishedCount = this.finishedStageRacers.size;
           const nextMapName = this.multiStage === 1 ? 'TOKYO' : (this.multiStage === 2 ? 'VOLCANO' : 'NEXT MAP');
-          this.showWaitingOnGrid(
-            `STAGE COMPLETED! 🏁`,
-            `ARRIVED AT ${nextMapName} GRID • WAITING FOR RACERS (${finishedCount}/${totalRacers})...`
-          );
+          if (this.finishedStageRacers.has(this.network.myPeerId)) {
+            this.showWaitingOnGrid(
+              `MAP ${this.multiStage} COMPLETED! 🏁`,
+              `ARRIVED AT ${nextMapName} GRID • WAITING FOR RACERS (${finishedCount}/${totalRacers})...`
+            );
+          } else {
+            const p = this.network.players.get(data.playerId);
+            const rName = p ? p.name : 'Rival racer';
+            this.hud.showNotification(`🏁 ${rName} arrived at ${nextMapName} grid! Finish circuit!`);
+          }
           if (this.network.isHost) {
             this.checkAllPlayersStageFinished(this.multiStage);
           }
         } else if (data.type === 'START_NEXT_STAGE') {
           this.hideWaitingOnGrid();
           this.finishedStageRacers.clear();
-          this.multiStage = data.mapIndex;
-          this.switchMap(data.mapIndex);
+          const targetStage = data.stageIndex !== undefined ? data.stageIndex : (data.mapIndex || 0);
+          this.multiStage = targetStage;
+          this.switchMap(targetStage);
           this.resetCarToStart(this.getMySlotIndex());
           this.startRaceSequence();
         } else if (data.type === 'TELEMETRY') {
-          const rCar = this.remoteCars.get(data.playerId);
-          if (rCar) {
+          if (data.playerId && data.playerId !== this.network.myPeerId) {
+            let rCar = this.remoteCars.get(data.playerId);
+            if (!rCar) {
+              const pInfo = this.network.players.get(data.playerId) || {
+                id: data.playerId,
+                name: data.name || 'Opponent',
+                carIndex: data.carIndex || 0
+              };
+              rCar = new RemoteHypercar(this.scene, pInfo);
+              const rSlot = this.getPlayerSlotIndex(data.playerId);
+              const rGrid = this.getStartingGridTransform(rSlot);
+              rCar.setInitialPlacement(rGrid.x, 0.05, rGrid.z, rGrid.heading);
+              this.remoteCars.set(data.playerId, rCar);
+            }
             rCar.updateTelemetry(data);
           }
         }
@@ -260,20 +282,111 @@ class ApexRacingGame {
 
   ensureHostLobbyReady() {
     if (!this.network) return;
+    this.gameMode = 'multiplayer';
     const roomCode = this.network.createRoom('Host', this.selectedCarIndex, this.activeMapIndex);
-    const codeDisplay = document.getElementById('room-code-display');
-    if (codeDisplay) codeDisplay.textContent = roomCode;
+    this.switchToHostLobbyView(roomCode);
   }
 
-  updateLobbyUI(players, selectedMap) {
+  switchToHostLobbyView(code) {
+    this.gameMode = 'multiplayer';
+    const hostPanel = document.getElementById('host-panel');
+    const joinPanel = document.getElementById('join-panel');
+    const tabHost = document.getElementById('tab-host');
+    const tabJoin = document.getElementById('tab-join');
+    const startRaceBtn = document.getElementById('start-race-btn');
+    const guestWaitingBox = document.getElementById('guest-waiting-box');
+    const mapSectionTitle = document.getElementById('map-section-title');
+    const codeDisplay = document.getElementById('room-code-display');
+    const closeBtn = document.getElementById('close-lobby-btn');
+
+    if (hostPanel) hostPanel.style.display = 'block';
+    if (joinPanel) joinPanel.style.display = 'none';
+
+    if (tabHost) {
+      tabHost.textContent = '🏆 HOST LOBBY';
+      tabHost.classList.add('active');
+      tabHost.style.pointerEvents = 'auto';
+    }
+    if (tabJoin) {
+      tabJoin.style.display = 'block';
+      tabJoin.classList.remove('active');
+    }
+
+    if (codeDisplay) codeDisplay.textContent = code || this.network.displayCode;
+
+    // Host has Launch button, never guest waiting box
+    if (startRaceBtn) startRaceBtn.style.display = 'block';
+    if (guestWaitingBox) guestWaitingBox.style.display = 'none';
+
+    if (mapSectionTitle) mapSectionTitle.textContent = 'SELECT RACING MAP';
+    document.querySelectorAll('.map-card').forEach(card => {
+      card.style.pointerEvents = 'auto';
+      card.style.opacity = '1';
+    });
+
+    if (closeBtn) closeBtn.textContent = 'BACK TO MODES';
+  }
+
+  switchToGuestLobbyView(code) {
+    this.gameMode = 'multiplayer';
+    const hostPanel = document.getElementById('host-panel');
+    const joinPanel = document.getElementById('join-panel');
+    const tabHost = document.getElementById('tab-host');
+    const tabJoin = document.getElementById('tab-join');
+    const startRaceBtn = document.getElementById('start-race-btn');
+    const guestWaitingBox = document.getElementById('guest-waiting-box');
+    const mapSectionTitle = document.getElementById('map-section-title');
+    const codeDisplay = document.getElementById('room-code-display');
+    const closeBtn = document.getElementById('close-lobby-btn');
+
+    if (hostPanel) hostPanel.style.display = 'block';
+    if (joinPanel) joinPanel.style.display = 'none';
+
+    if (tabHost) {
+      tabHost.textContent = `🏎️ RACER (ROOM ${code})`;
+      tabHost.classList.add('active');
+      tabHost.style.pointerEvents = 'none';
+    }
+    if (tabJoin) {
+      tabJoin.style.display = 'none';
+    }
+
+    if (codeDisplay) codeDisplay.textContent = code;
+
+    // Guest cannot launch race; guest must wait!
+    if (startRaceBtn) startRaceBtn.style.display = 'none';
+    if (guestWaitingBox) guestWaitingBox.style.display = 'flex';
+
+    if (mapSectionTitle) mapSectionTitle.textContent = 'RACING MAP (SELECTED BY HOST)';
+    document.querySelectorAll('.map-card').forEach(card => {
+      card.style.pointerEvents = 'none';
+      card.style.opacity = '0.85';
+    });
+
+    if (closeBtn) closeBtn.textContent = '◀ LEAVE ROOM';
+  }
+
+  updateLobbyUI(players, isHost, selectedMap) {
     const rosterEl = document.getElementById('player-roster');
     const countEl = document.getElementById('player-count');
     if (!rosterEl) return;
 
+    const playerList = Array.isArray(players) ? players : Array.from(players.values());
     rosterEl.innerHTML = '';
-    if (countEl) countEl.textContent = players.size;
+    if (countEl) countEl.textContent = playerList.length;
 
-    players.forEach((p) => {
+    const startRaceBtn = document.getElementById('start-race-btn');
+    const guestWaitingBox = document.getElementById('guest-waiting-box');
+
+    if (this.network.isHost) {
+      if (startRaceBtn) startRaceBtn.style.display = 'block';
+      if (guestWaitingBox) guestWaitingBox.style.display = 'none';
+    } else {
+      if (startRaceBtn) startRaceBtn.style.display = 'none';
+      if (guestWaitingBox) guestWaitingBox.style.display = 'flex';
+    }
+
+    playerList.forEach((p) => {
       const isMe = p.id === this.network.myPeerId;
       const carCfg = CAR_CONFIGS[p.carIndex] || CAR_CONFIGS[0];
       const div = document.createElement('div');
@@ -286,14 +399,35 @@ class ApexRacingGame {
       rosterEl.appendChild(div);
 
       // Manage Remote Cars in 3D scene
-      if (!isMe && !this.remoteCars.has(p.id)) {
-        const remoteCar = new RemoteHypercar(this.scene, p);
-        this.remoteCars.set(p.id, remoteCar);
+      if (!isMe) {
+        if (!this.remoteCars.has(p.id)) {
+          const remoteCar = new RemoteHypercar(this.scene, p);
+          const rSlot = this.getPlayerSlotIndex(p.id);
+          const rGrid = this.getStartingGridTransform(rSlot);
+          remoteCar.setInitialPlacement(rGrid.x, 0.05, rGrid.z, rGrid.heading);
+          this.remoteCars.set(p.id, remoteCar);
+        } else {
+          const rCar = this.remoteCars.get(p.id);
+          rCar.updatePlayerInfo(p);
+        }
+      }
+    });
+
+    // Clean up disconnected players
+    const activeIds = new Set(playerList.map(p => p.id));
+    this.remoteCars.forEach((rCar, pId) => {
+      if (!activeIds.has(pId)) {
+        rCar.destroy();
+        this.remoteCars.delete(pId);
       }
     });
 
     if (selectedMap !== undefined && selectedMap !== this.activeMapIndex) {
       this.switchMap(selectedMap);
+      document.querySelectorAll('.map-card').forEach(c => {
+        if (parseInt(c.dataset.map, 10) === selectedMap) c.classList.add('active');
+        else c.classList.remove('active');
+      });
     }
   }
 
@@ -510,6 +644,15 @@ class ApexRacingGame {
     document.getElementById('close-lobby-btn').addEventListener('click', () => {
       document.getElementById('lobby-modal').classList.remove('active');
       document.getElementById('mode-selection-modal').classList.add('active');
+      const tabHost = document.getElementById('tab-host');
+      const tabJoin = document.getElementById('tab-join');
+      if (tabHost) {
+        tabHost.textContent = '🏆 HOST LOBBY';
+        tabHost.style.pointerEvents = 'auto';
+      }
+      if (tabJoin) {
+        tabJoin.style.display = 'block';
+      }
     });
 
     document.getElementById('reset-car-btn').addEventListener('click', () => {
@@ -568,14 +711,15 @@ class ApexRacingGame {
       hostPanel.style.display = 'none';
     });
 
-    // Map Selection Cards in Lobby
+    // Map Selection Cards in Lobby (ONLY HOST CAN SELECT MAP)
     document.querySelectorAll('.map-card').forEach(card => {
       card.addEventListener('click', () => {
+        if (!this.network || !this.network.isHost) return;
         document.querySelectorAll('.map-card').forEach(c => c.classList.remove('active'));
         card.classList.add('active');
         const mapId = parseInt(card.dataset.map, 10);
         this.switchMap(mapId);
-        if (this.network && this.network.isHost) {
+        if (this.network) {
           this.network.selectedMap = mapId;
           this.network.broadcastRoster();
         }
@@ -597,16 +741,7 @@ class ApexRacingGame {
         });
 
         if (this.network) {
-          const myPlayer = this.network.players.get(this.network.myPeerId);
-          if (myPlayer) {
-            myPlayer.carIndex = carId;
-            this.network.broadcast({
-              type: 'CAR_SELECT',
-              playerId: this.network.myPeerId,
-              carIndex: carId
-            });
-            this.network.notifyPlayersChanged();
-          }
+          this.network.sendCarSelection(carId);
         }
       });
     });
@@ -694,17 +829,21 @@ class ApexRacingGame {
       const params = new URLSearchParams(window.location.search);
       const room = params.get('room');
       if (room) {
+        const cleanCode = room.trim().replace(/^apex-/i, '').replace(/[^0-9]/g, '');
         document.getElementById('mode-selection-modal').classList.remove('active');
         document.getElementById('garage-selection-modal').classList.remove('active');
         document.getElementById('lobby-modal').classList.add('active');
         document.getElementById('tab-join').click();
         const input = document.getElementById('join-room-input');
-        if (input) input.value = room;
+        if (input) input.value = cleanCode;
         const statusEl = document.getElementById('join-status');
         if (statusEl) {
-          statusEl.textContent = `Room ${room} detected! Click Connect or choose car.`;
+          statusEl.textContent = `Invite link detected! Connecting to Room ${cleanCode}...`;
           statusEl.style.color = '#38bdf8';
         }
+        setTimeout(() => {
+          this.joinExistingRoom(cleanCode);
+        }, 350);
       }
     } catch (e) {
       console.warn('Error reading URL search params:', e);
@@ -712,19 +851,29 @@ class ApexRacingGame {
   }
 
   joinExistingRoom(code) {
+    const cleanCode = (code || '').toString().trim().replace(/^apex-/i, '').replace(/[^0-9]/g, '');
+    if (!cleanCode) return;
     const statusEl = document.getElementById('join-status');
-    statusEl.textContent = 'Connecting to room host...';
-    statusEl.style.color = '#38bdf8';
+    if (statusEl) {
+      statusEl.textContent = `Connecting to room ${cleanCode}...`;
+      statusEl.style.color = '#38bdf8';
+    }
 
-    this.network.joinRoom(code, `Player ${Math.floor(Math.random() * 80 + 2)}`, this.selectedCarIndex)
-      .then((roomId) => {
-        statusEl.textContent = 'Connected successfully! Waiting for host to launch race 🏁';
-        statusEl.style.color = '#22c55e';
-        document.getElementById('tab-host').click();
+    this.gameMode = 'multiplayer';
+
+    this.network.joinRoom(cleanCode, `Player ${Math.floor(Math.random() * 80 + 2)}`, this.selectedCarIndex)
+      .then((displayCode) => {
+        if (statusEl) {
+          statusEl.textContent = 'Connected successfully! Waiting for host to launch race 🏁';
+          statusEl.style.color = '#22c55e';
+        }
+        this.switchToGuestLobbyView(displayCode);
       })
       .catch((err) => {
-        statusEl.textContent = `Connection failed: ${err.message || 'Room not found'}`;
-        statusEl.style.color = '#ef4444';
+        if (statusEl) {
+          statusEl.textContent = `Connection failed: ${err.message || 'Room not found'}`;
+          statusEl.style.color = '#ef4444';
+        }
       });
   }
 
@@ -1183,6 +1332,8 @@ class ApexRacingGame {
     if (now - this.lastTelemetrySend > 50 && this.network) {
       this.lastTelemetrySend = now;
       this.network.sendTelemetry({
+        name: this.network.players.get(this.network.myPeerId)?.name || 'Player',
+        carIndex: this.selectedCarIndex,
         x: this.car.position.x,
         y: this.car.position.y,
         z: this.car.position.z,

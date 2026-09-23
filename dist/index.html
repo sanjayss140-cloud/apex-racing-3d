@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>APEX RUSH 3D — 500 KM/H Multiplayer Hypercar Circuit</title>
-    <script type="module" crossorigin src="./assets/index-C8XWZ2UE.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-BSO2ocOM.css">
+    <script type="module" crossorigin src="./assets/index-BgHkJVEJ.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-D4HUGmjg.css">
   </head>
   <body>
     <!-- WebGL Canvas Container -->
@@ -210,7 +210,7 @@
         <!-- Host Section -->
         <div id="host-panel" class="lobby-section">
           <!-- Map Selector -->
-          <div class="section-title">SELECT RACING MAP</div>
+          <div class="section-title" id="map-section-title">SELECT RACING MAP</div>
           <div class="map-grid">
             <div class="map-card active" data-map="0">
               <div class="map-tag">MAP 1</div>
@@ -293,6 +293,13 @@
             <button id="start-race-btn" class="btn-start-race">
               🚀 LAUNCH RACE (ALL PLAYERS)
             </button>
+            <div id="guest-waiting-box" class="guest-waiting-box" style="display: none;">
+              <div class="guest-waiting-spinner"></div>
+              <div class="guest-waiting-text">
+                <div class="guest-waiting-title">⏳ WAITING FOR HOST TO START RACE...</div>
+                <div class="guest-waiting-sub">Select your hypercar above. Race will launch automatically when host starts.</div>
+              </div>
+            </div>
             <button id="close-lobby-btn" class="btn-solo-race">
               BACK TO MODES
             </button>

@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>APEX RUSH 3D — 500 KM/H Multiplayer Hypercar Circuit</title>
-    <script type="module" crossorigin src="./assets/index-BgHkJVEJ.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-D4HUGmjg.css">
+    <script type="module" crossorigin src="./assets/index-BIrUtwI0.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-CwyNKD8u.css">
   </head>
   <body>
     <!-- WebGL Canvas Container -->
@@ -99,6 +99,22 @@
     </div>
 
     <!-- ========================================================
+         BANNER 0: RACER NAME CALLSIGN MODAL
+         ======================================================== -->
+    <div id="name-modal" class="name-modal">
+      <div class="name-card glass">
+        <div class="lobby-header">
+          <h1 class="lobby-title">APEX <span>RACER PROFILE</span></h1>
+          <p class="name-subtitle">ENTER YOUR RACER CALLSIGN TO ENTER THE TOURNAMENT</p>
+        </div>
+        <div class="name-input-group">
+          <input type="text" id="racer-name-input" placeholder="e.g. Maverick" maxlength="14" />
+          <button id="btn-save-name" class="btn-save-name">ENTER PADDOCK 🏁</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================
          BANNER 1: SELECT GAME MODE MODAL
          ======================================================== -->
     <div id="mode-selection-modal" class="mode-selection-modal active">
@@ -184,6 +200,9 @@
         <div class="garage-action-row" style="margin-top: 12px; display: flex; gap: 12px;">
           <button id="btn-confirm-garage" class="btn-start-race" style="flex: 2;">
             🚀 START RACE
+          </button>
+          <button id="btn-ready-garage" class="btn-start-race btn-ready-pulse" style="flex: 2; display: none; background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff;">
+            ✅ READY TO RACE
           </button>
           <button id="btn-back-from-garage" class="btn-solo-race" style="flex: 1;">
             ◀ BACK

@@ -1356,35 +1356,48 @@ class ApexRacingGame {
       if (this.car && this.car.nameplateSprite) {
         this.car.nameplateSprite.visible = false;
       }
+
+      // Close near clipping plane so headrest and cabin geometry never clip
+      if (this.camera.near !== 0.04) {
+        this.camera.near = 0.04;
+        this.camera.updateProjectionMatrix();
+      }
+
       // 1st-Person In-Seat Cockpit Driver View
       const rightVec = new THREE.Vector3(Math.cos(this.car.heading), 0, -Math.sin(this.car.heading));
       
-      // Seated inside cabin on left side, at eye level, looking forward
+      // Seated inside cabin on left side, at eye level, looking forward through windshield
+      // Rigid attachment ensures acceleration NEVER collapses or clips camera into rear body/engine
       const seatPos = carPos.clone()
         .addScaledVector(rightVec, -0.36)
-        .addScaledVector(forwardVec, -0.12)
-        .add(new THREE.Vector3(0, 0.95, 0));
+        .addScaledVector(forwardVec, -0.04)
+        .add(new THREE.Vector3(0, 0.96, 0));
 
-      // High-speed cockpit vibration sensation at 500+ KM/H
+      // Subtle high-speed micro-vibration
       if (speed > 40) {
-        const shake = Math.min(0.018, (speed / 140.0) * 0.012);
+        const shake = Math.min(0.005, (speed / 140.0) * 0.004);
         seatPos.x += (Math.random() - 0.5) * shake;
         seatPos.y += (Math.random() - 0.5) * shake;
       }
 
-      this.camera.position.lerp(seatPos, dt * 26);
+      // Rigid positioning: zero position lag behind moving car
+      this.camera.position.copy(seatPos);
 
-      const lookAhead = Math.max(16, 10 + speed * 0.35);
+      const lookAhead = 25.0;
       const cockpitTarget = seatPos.clone()
         .addScaledVector(forwardVec, lookAhead)
-        .add(new THREE.Vector3(0, -0.06, 0));
-      this.cameraTarget.lerp(cockpitTarget, dt * 22);
+        .add(new THREE.Vector3(0, -0.05, 0));
+      this.cameraTarget.copy(cockpitTarget);
       this.camera.lookAt(this.cameraTarget);
 
-      const targetFOV = this.car.isNitro ? 88 : (70 + speedRatio * 16);
+      const targetFOV = this.car.isNitro ? 86 : (72 + speedRatio * 12);
       this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, targetFOV, dt * 8);
       this.camera.updateProjectionMatrix();
     } else {
+      if (this.camera.near !== 0.1) {
+        this.camera.near = 0.1;
+        this.camera.updateProjectionMatrix();
+      }
       if (this.car && this.car.nameplateSprite) {
         this.car.nameplateSprite.visible = true;
       }

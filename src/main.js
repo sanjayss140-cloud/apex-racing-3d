@@ -741,6 +741,7 @@ class ApexRacingGame {
           this.switchMap(0);
           this.startRaceSequence();
         } else {
+          this.ensureHostLobbyReady();
           document.getElementById('lobby-modal').classList.add('active');
         }
       });
@@ -963,20 +964,7 @@ class ApexRacingGame {
       const room = params.get('room');
       if (room) {
         const cleanCode = room.trim().replace(/^apex-/i, '').replace(/[^0-9]/g, '');
-        document.getElementById('mode-selection-modal').classList.remove('active');
-        document.getElementById('garage-selection-modal').classList.remove('active');
-        document.getElementById('lobby-modal').classList.add('active');
-        document.getElementById('tab-join').click();
-        const input = document.getElementById('join-room-input');
-        if (input) input.value = cleanCode;
-        const statusEl = document.getElementById('join-status');
-        if (statusEl) {
-          statusEl.textContent = `Invite link detected! Connecting to Room ${cleanCode}...`;
-          statusEl.style.color = '#38bdf8';
-        }
-        setTimeout(() => {
-          this.joinExistingRoom(cleanCode);
-        }, 350);
+        this.joinExistingRoom(cleanCode);
       }
     } catch (e) {
       console.warn('Error reading URL search params:', e);
@@ -986,31 +974,31 @@ class ApexRacingGame {
   joinExistingRoom(code) {
     const cleanCode = (code || '').toString().trim().replace(/^apex-/i, '').replace(/[^0-9]/g, '');
     if (!cleanCode) return;
-    const statusEl = document.getElementById('join-status');
-    if (statusEl) {
-      statusEl.textContent = `Connecting to room ${cleanCode}...`;
-      statusEl.style.color = '#38bdf8';
-    }
+    if (this._hasJoinedRoom === cleanCode) return;
+    this._hasJoinedRoom = cleanCode;
 
     this.gameMode = 'multiplayer';
     const racerName = this.playerName || `Racer ${Math.floor(Math.random() * 80 + 2)}`;
 
+    // Instant direct showroom with 0 delay and NO lobby banners!
+    const modeModal = document.getElementById('mode-selection-modal');
+    const lobbyModal = document.getElementById('lobby-modal');
+    if (modeModal) modeModal.classList.remove('active');
+    if (lobbyModal) lobbyModal.classList.remove('active');
+    this.openFriendShowroom();
+
+    const statusEl = document.getElementById('join-status');
+    if (statusEl) {
+      statusEl.textContent = `Connected to room ${cleanCode}`;
+      statusEl.style.color = '#22c55e';
+    }
+
     this.network.joinRoom(cleanCode, racerName, this.selectedCarIndex)
       .then((displayCode) => {
-        if (statusEl) {
-          statusEl.textContent = 'Connected successfully! Choose your hypercar & ready up 🏁';
-          statusEl.style.color = '#22c55e';
-        }
-        // Direct friend flow: Hide mode & lobby modals, drop directly into 3D visual showroom!
-        document.getElementById('mode-selection-modal').classList.remove('active');
-        document.getElementById('lobby-modal').classList.remove('active');
-        this.openFriendShowroom();
+        console.log('[Multiplayer] Connected to room:', displayCode);
       })
       .catch((err) => {
-        if (statusEl) {
-          statusEl.textContent = `Connection failed: ${err.message || 'Room not found'}`;
-          statusEl.style.color = '#ef4444';
-        }
+        console.warn('[Multiplayer] Join notice:', err);
       });
   }
 

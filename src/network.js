@@ -3,8 +3,9 @@ import { Peer } from 'peerjs';
 export class NetworkManager {
   constructor(onCodeReady, onPlayerListUpdate, onMessageCallback) {
     this.peer = null;
-    this.myPeerId = null;
-    // Pure 4-digit room code, e.g. 4936
+    // Each browser/tab gets a guaranteed unique peer ID for guest connections
+    this.myPeerId = 'apex-p' + Math.floor(100000 + Math.random() * 900000);
+    // Default 4-digit room code for host
     this.displayCode = '' + Math.floor(1000 + Math.random() * 9000);
     this.roomId = `apex-${this.displayCode}`;
     this.isHost = false;
@@ -16,8 +17,11 @@ export class NetworkManager {
     this.onMessageCallback = onMessageCallback;
     this.selectedMap = 0;
     this.localChannel = null;
+    this.initPromise = null;
+    this.pendingReady = undefined;
+    this.pendingCarIndex = undefined;
 
-    // Cross-tab local multiplayer channel for instant reliable testing
+    // Cross-tab local multiplayer channel for instant, reliable local testing
     try {
       if (typeof BroadcastChannel !== 'undefined') {
         this.localChannel = new BroadcastChannel('apex_rush_mp');
@@ -34,8 +38,33 @@ export class NetworkManager {
 
   // Initialize PeerJS signaling
   init(preferredId = null) {
-    return new Promise((resolve) => {
-      const targetId = (preferredId || this.roomId).toLowerCase();
+    if (this.initPromise) return this.initPromise;
+
+    this.initPromise = new Promise((resolve) => {
+      // Check if URL has ?room= parameter
+      let urlRoom = null;
+      try {
+        if (typeof window !== 'undefined' && window.location && window.location.search) {
+          const params = new URLSearchParams(window.location.search);
+          const r = params.get('room');
+          if (r) urlRoom = r.trim().replace(/^apex-/i, '').replace(/[^0-9]/g, '');
+        }
+      } catch (e) {}
+
+      let targetId;
+      if (preferredId) {
+        targetId = preferredId.toLowerCase();
+      } else if (urlRoom) {
+        // Invited guest: Target peer ID MUST be unique guest ID, NOT host's room code!
+        this.isHost = false;
+        this.displayCode = urlRoom;
+        this.roomId = `apex-${urlRoom}`;
+        targetId = this.myPeerId;
+      } else {
+        // Potential Host: use 4-digit code
+        targetId = this.roomId.toLowerCase();
+      }
+
       try {
         this.peer = new Peer(targetId, {
           debug: 1,
@@ -50,13 +79,13 @@ export class NetworkManager {
 
         this.peer.on('open', (id) => {
           this.myPeerId = id;
-          this.roomId = id;
-          const match = id.match(/\d{4}/);
-          if (match) {
-            this.displayCode = match[0];
+          if (this.isHost) {
+            this.roomId = id;
+            const match = id.match(/\d{4}/);
+            if (match) this.displayCode = match[0];
           }
-          console.log('[Multiplayer] Connected with Peer ID:', id, 'Code:', this.displayCode);
-          if (this.onCodeReady) this.onCodeReady(this.displayCode);
+          console.log('[Multiplayer] Connected with Peer ID:', id, 'Host Room ID:', this.roomId, 'isHost:', this.isHost);
+          if (this.isHost && this.onCodeReady) this.onCodeReady(this.displayCode);
           resolve(id);
         });
 
@@ -67,22 +96,30 @@ export class NetworkManager {
         this.peer.on('error', (err) => {
           console.warn('[Multiplayer] Signaling warning:', err);
           if (err.type === 'unavailable-id') {
-            // Generate a fresh unique 4-digit ID
-            this.displayCode = '' + Math.floor(1000 + Math.random() * 9000);
-            this.roomId = `apex-${this.displayCode}`;
-            if (this.onCodeReady) this.onCodeReady(this.displayCode);
-            this.init(this.roomId).then(resolve);
+            if (this.isHost) {
+              // Generate a fresh unique 4-digit ID for host
+              this.displayCode = '' + Math.floor(1000 + Math.random() * 9000);
+              this.roomId = `apex-${this.displayCode}`;
+              if (this.onCodeReady) this.onCodeReady(this.displayCode);
+              this.initPromise = null;
+              this.init(this.roomId).then(resolve);
+            } else {
+              // Guest collided, generate fresh guest ID
+              this.myPeerId = 'apex-p' + Math.floor(100000 + Math.random() * 900000);
+              this.initPromise = null;
+              this.init(this.myPeerId).then(resolve);
+            }
           } else {
-            if (this.onCodeReady) this.onCodeReady(this.displayCode);
             resolve(this.displayCode);
           }
         });
       } catch (err) {
         console.error('[Multiplayer] Peer init error:', err);
-        if (this.onCodeReady) this.onCodeReady(this.displayCode);
         resolve(this.displayCode);
       }
     });
+
+    return this.initPromise;
   }
 
   // Host a room
@@ -106,82 +143,103 @@ export class NetworkManager {
   }
 
   // Join a room by code
-  joinRoom(targetCode, playerName = 'Racer', carIndex = 1) {
-    return new Promise((resolve, reject) => {
-      this.isHost = false;
-      const digits = (targetCode || '').toString().trim().replace(/^apex-/i, '').replace(/[^0-9]/g, '');
-      if (!digits) {
-        reject(new Error('Invalid 4-digit room code'));
+  async joinRoom(targetCode, playerName = 'Racer', carIndex = 1) {
+    this.isHost = false;
+    const digits = (targetCode || '').toString().trim().replace(/^apex-/i, '').replace(/[^0-9]/g, '');
+    if (!digits) {
+      throw new Error('Invalid 4-digit room code');
+    }
+    this.displayCode = digits;
+    const hostPeerId = `apex-${digits}`;
+    this.roomId = hostPeerId;
+
+    await (this.initPromise || this.init());
+
+    const myId = this.myPeerId;
+
+    // Register self locally
+    this.players.set(myId, {
+      id: myId,
+      name: playerName,
+      carIndex: carIndex,
+      isHost: false,
+      ready: this.pendingReady !== undefined ? !!this.pendingReady : false,
+      finished: false,
+      finishTime: null
+    });
+
+    const joinPacket = {
+      type: 'JOIN',
+      playerId: myId,
+      name: playerName,
+      carIndex: carIndex
+    };
+
+    // Broadcast via BroadcastChannel immediately
+    if (this.localChannel) {
+      this.localChannel.postMessage({
+        room: this.roomId,
+        from: myId,
+        payload: joinPacket
+      });
+    }
+
+    // Connect via PeerJS WebRTC
+    return new Promise((resolve) => {
+      if (!this.peer || this.peer.destroyed) {
+        resolve(this.displayCode);
         return;
       }
-      this.displayCode = digits;
-      const hostPeerId = `apex-${digits}`;
-      this.roomId = hostPeerId;
 
-      const myId = this.myPeerId || `apex-p${Math.floor(100 + Math.random() * 900)}`;
-      this.myPeerId = myId;
+      try {
+        const conn = this.peer.connect(hostPeerId, { reliable: true });
 
-      // Register self locally
-      this.players.set(myId, {
-        id: myId,
-        name: playerName,
-        carIndex: carIndex,
-        isHost: false,
-        ready: false,
-        finished: false,
-        finishTime: null
-      });
+        const timer = setTimeout(() => {
+          resolve(this.displayCode);
+        }, 5000);
 
-      // Broadcast via BroadcastChannel if local
-      if (this.localChannel) {
-        this.localChannel.postMessage({
-          room: this.roomId,
-          from: myId,
-          payload: {
-            type: 'JOIN',
-            playerId: myId,
-            name: playerName,
-            carIndex: carIndex
-          }
-        });
-      }
+        const onOpen = () => {
+          clearTimeout(timer);
+          this.connections.set(hostPeerId, conn);
+          this.hostConn = conn;
+          this.setupDataListeners(conn);
+          conn.send(joinPacket);
 
-      // Connect via PeerJS WebRTC
-      if (this.peer && !this.peer.destroyed) {
-        try {
-          const conn = this.peer.connect(hostPeerId, { reliable: true });
-
-          const timer = setTimeout(() => {
-            if (this.localChannel) {
-              resolve(this.displayCode);
-            } else {
-              reject(new Error('Connection timed out. Check room code.'));
-            }
-          }, 7000);
-
-          conn.on('open', () => {
-            clearTimeout(timer);
-            this.connections.set(hostPeerId, conn);
-            this.hostConn = conn;
+          // If guest already made a selection or hit ready while connecting, push it immediately!
+          if (this.pendingCarIndex !== undefined) {
             conn.send({
-              type: 'JOIN',
+              type: 'CAR_SELECT',
               playerId: myId,
               name: playerName,
-              carIndex: carIndex
+              carIndex: this.pendingCarIndex
             });
-            this.setupDataListeners(conn);
-            resolve(this.displayCode);
-          });
+          }
+          if (this.pendingReady !== undefined) {
+            conn.send({
+              type: 'PLAYER_READY',
+              playerId: myId,
+              name: playerName,
+              ready: this.pendingReady
+            });
+          }
 
-          conn.on('error', (err) => {
-            clearTimeout(timer);
-            if (!this.localChannel) reject(err);
-          });
-        } catch (e) {
-          if (this.localChannel) resolve(this.displayCode);
-          else reject(e);
+          resolve(this.displayCode);
+        };
+
+        if (conn.open) {
+          onOpen();
+        } else {
+          conn.on('open', onOpen);
         }
-      } else {
+
+        this.setupDataListeners(conn);
+
+        conn.on('error', (err) => {
+          clearTimeout(timer);
+          console.warn('[Multiplayer] Connection warning to host:', err);
+          resolve(this.displayCode);
+        });
+      } catch (e) {
         resolve(this.displayCode);
       }
     });
@@ -189,18 +247,30 @@ export class NetworkManager {
 
   handleIncomingConnection(conn) {
     if (this.players.size >= 6) {
-      conn.send({ type: 'ERROR', message: 'Room is full (max 6 players)!' });
-      setTimeout(() => conn.close(), 500);
+      try {
+        conn.send({ type: 'ERROR', message: 'Room is full (max 6 players)!' });
+        setTimeout(() => conn.close(), 500);
+      } catch (e) {}
       return;
     }
 
-    conn.on('open', () => {
+    const onOpen = () => {
       this.connections.set(conn.peer, conn);
-      this.setupDataListeners(conn);
-    });
+    };
+
+    if (conn.open) {
+      onOpen();
+    } else {
+      conn.on('open', onOpen);
+    }
+
+    this.setupDataListeners(conn);
   }
 
   setupDataListeners(conn) {
+    if (conn._hasApexListeners) return;
+    conn._hasApexListeners = true;
+
     conn.on('data', (data) => {
       this.handlePacket(data, conn);
     });
@@ -213,6 +283,10 @@ export class NetworkManager {
         this.onMessageCallback({ type: 'PLAYER_DISCONNECTED', peerId: conn.peer });
       }
     });
+
+    conn.on('error', (err) => {
+      console.warn('[Multiplayer] DataConnection error with', conn.peer, err);
+    });
   }
 
   handlePacket(data, conn = {}) {
@@ -221,7 +295,7 @@ export class NetworkManager {
     switch (data.type) {
       case 'JOIN': {
         if (this.isHost) {
-          let assignedCar = data.carIndex;
+          let assignedCar = data.carIndex !== undefined ? data.carIndex : 1;
           const usedCars = Array.from(this.players.values()).map(p => p.carIndex);
           if (usedCars.includes(assignedCar)) {
             for (let i = 0; i < 6; i++) {
@@ -232,12 +306,14 @@ export class NetworkManager {
             }
           }
 
-          this.players.set(data.playerId, {
-            id: data.playerId,
-            name: data.name,
+          const guestId = data.playerId || (conn && (conn.peer || conn.from));
+          const existing = this.players.get(guestId);
+          this.players.set(guestId, {
+            id: guestId,
+            name: data.name || (existing ? existing.name : 'Racer'),
             carIndex: assignedCar,
             isHost: false,
-            ready: false,
+            ready: existing ? existing.ready : false,
             finished: false,
             finishTime: null
           });
@@ -249,13 +325,28 @@ export class NetworkManager {
       }
 
       case 'PLAYER_READY': {
-        const p = this.players.get(data.playerId);
+        const targetId = data.playerId || (conn && (conn.peer || conn.from));
+        let p = this.players.get(targetId);
+        if (!p && conn && conn.peer) p = this.players.get(conn.peer);
+        if (!p && data.playerId) p = this.players.get(data.playerId);
+        if (!p) {
+          const guests = Array.from(this.players.values()).filter(x => !x.isHost);
+          if (guests.length === 1) {
+            p = guests[0];
+          } else if (data.name) {
+            p = guests.find(x => x.name === data.name);
+          }
+        }
+
         if (p) {
           p.ready = !!data.ready;
+          console.log(`[Multiplayer] Player ${p.name} (${p.id}) set ready = ${p.ready}`);
           if (this.isHost) {
             this.broadcastRoster();
           }
           this.notifyPlayersChanged();
+        } else {
+          console.warn('[Multiplayer] PLAYER_READY received for unknown player:', data);
         }
         break;
       }
@@ -273,9 +364,22 @@ export class NetworkManager {
       }
 
       case 'CAR_SELECT': {
-        const player = this.players.get(data.playerId);
-        if (player) {
-          player.carIndex = data.carIndex;
+        const targetId = data.playerId || (conn && (conn.peer || conn.from));
+        let p = this.players.get(targetId);
+        if (!p && conn && conn.peer) p = this.players.get(conn.peer);
+        if (!p && data.playerId) p = this.players.get(data.playerId);
+        if (!p) {
+          const guests = Array.from(this.players.values()).filter(x => !x.isHost);
+          if (guests.length === 1) {
+            p = guests[0];
+          } else if (data.name) {
+            p = guests.find(x => x.name === data.name);
+          }
+        }
+
+        if (p) {
+          p.carIndex = data.carIndex;
+          console.log(`[Multiplayer] Player ${p.name} (${p.id}) selected car ${p.carIndex}`);
           if (this.isHost) {
             this.broadcastRoster();
           }
@@ -345,6 +449,7 @@ export class NetworkManager {
   }
 
   sendReady(isReady = true) {
+    this.pendingReady = isReady;
     const myPlayer = this.players.get(this.myPeerId);
     if (myPlayer) {
       myPlayer.ready = isReady;
@@ -353,8 +458,11 @@ export class NetworkManager {
     const packet = {
       type: 'PLAYER_READY',
       playerId: this.myPeerId,
+      name: myPlayer ? myPlayer.name : undefined,
       ready: isReady
     };
+
+    console.log('[Multiplayer] Sending PLAYER_READY:', packet);
 
     if (this.isHost) {
       this.broadcastRoster();
@@ -377,6 +485,7 @@ export class NetworkManager {
   }
 
   sendCarSelection(carIndex) {
+    this.pendingCarIndex = carIndex;
     const myPlayer = this.players.get(this.myPeerId);
     if (myPlayer) {
       myPlayer.carIndex = carIndex;
@@ -385,8 +494,11 @@ export class NetworkManager {
     const packet = {
       type: 'CAR_SELECT',
       playerId: this.myPeerId,
+      name: myPlayer ? myPlayer.name : undefined,
       carIndex: carIndex
     };
+
+    console.log('[Multiplayer] Sending CAR_SELECT:', packet);
 
     if (this.isHost) {
       this.broadcastRoster();

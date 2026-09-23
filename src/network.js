@@ -127,7 +127,7 @@ export class NetworkManager {
         name: playerName,
         carIndex: carIndex,
         isHost: false,
-        ready: true,
+        ready: false,
         finished: false,
         finishTime: null
       });
@@ -237,12 +237,24 @@ export class NetworkManager {
             name: data.name,
             carIndex: assignedCar,
             isHost: false,
-            ready: true,
+            ready: false,
             finished: false,
             finishTime: null
           });
 
           this.broadcastRoster();
+          this.notifyPlayersChanged();
+        }
+        break;
+      }
+
+      case 'PLAYER_READY': {
+        const p = this.players.get(data.playerId);
+        if (p) {
+          p.ready = !!data.ready;
+          if (this.isHost) {
+            this.broadcastRoster();
+          }
           this.notifyPlayersChanged();
         }
         break;
@@ -329,6 +341,38 @@ export class NetworkManager {
         if (this.onMessageCallback) {
           this.onMessageCallback(data);
         }
+    }
+  }
+
+  sendReady(isReady = true) {
+    const myPlayer = this.players.get(this.myPeerId);
+    if (myPlayer) {
+      myPlayer.ready = isReady;
+    }
+
+    const packet = {
+      type: 'PLAYER_READY',
+      playerId: this.myPeerId,
+      ready: isReady
+    };
+
+    if (this.isHost) {
+      this.broadcastRoster();
+      this.notifyPlayersChanged();
+    } else {
+      if (this.hostConn && this.hostConn.open) {
+        this.hostConn.send(packet);
+      }
+      this.connections.forEach((conn) => {
+        if (conn.open) conn.send(packet);
+      });
+      if (this.localChannel) {
+        this.localChannel.postMessage({
+          room: this.roomId,
+          from: this.myPeerId,
+          payload: packet
+        });
+      }
     }
   }
 

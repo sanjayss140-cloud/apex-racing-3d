@@ -27,6 +27,8 @@ class ApexRacingGame {
     this.elapsedTime = 0;
     this.inShowroom = false;
     this.cameraMode = 'chase'; // 'chase' or 'cockpit' (in-seat)
+    this.playerName = localStorage.getItem('apex_racer_name') || '';
+    this.isReady = false;
 
     // Multiplayer Multi-Map Tour State
     this.multiStage = 0; // 0 = Desert, 1 = Tokyo, 2 = Volcano
@@ -106,6 +108,9 @@ class ApexRacingGame {
   initEntities() {
     this.track = new Track(this.scene, this.activeMapIndex);
     this.car = new Hypercar(this.scene);
+    if (this.playerName) {
+      this.car.updateNameplate(this.playerName);
+    }
     this.hud = new RacingHUD();
 
     // Start position dynamically aligned on the track launch straight facing Gate 1
@@ -221,6 +226,8 @@ class ApexRacingGame {
           document.getElementById('lobby-modal').classList.remove('active');
           document.getElementById('mode-selection-modal').classList.remove('active');
           document.getElementById('garage-selection-modal').classList.remove('active');
+          document.body.classList.remove('in-showroom');
+          this.inShowroom = false;
           this.multiStage = 0;
           this.finishedStageRacers.clear();
           this.hideWaitingOnGrid();
@@ -378,8 +385,25 @@ class ApexRacingGame {
     const startRaceBtn = document.getElementById('start-race-btn');
     const guestWaitingBox = document.getElementById('guest-waiting-box');
 
+    const guests = playerList.filter(p => !p.isHost);
+    const readyGuests = guests.filter(p => p.ready);
+    const allGuestsReady = guests.length === 0 || guests.every(p => p.ready);
+
     if (this.network.isHost) {
-      if (startRaceBtn) startRaceBtn.style.display = 'block';
+      if (startRaceBtn) {
+        startRaceBtn.style.display = 'block';
+        if (guests.length > 0 && !allGuestsReady) {
+          startRaceBtn.textContent = `⏳ WAITING FOR RACERS TO READY (${readyGuests.length}/${guests.length})`;
+          startRaceBtn.style.opacity = '0.65';
+          startRaceBtn.style.cursor = 'not-allowed';
+          startRaceBtn.disabled = true;
+        } else {
+          startRaceBtn.textContent = guests.length > 0 ? '🚀 LAUNCH RACE (ALL READY!)' : '🚀 LAUNCH RACE (ALL PLAYERS)';
+          startRaceBtn.style.opacity = '1';
+          startRaceBtn.style.cursor = 'pointer';
+          startRaceBtn.disabled = false;
+        }
+      }
       if (guestWaitingBox) guestWaitingBox.style.display = 'none';
     } else {
       if (startRaceBtn) startRaceBtn.style.display = 'none';
@@ -389,12 +413,19 @@ class ApexRacingGame {
     playerList.forEach((p) => {
       const isMe = p.id === this.network.myPeerId;
       const carCfg = CAR_CONFIGS[p.carIndex] || CAR_CONFIGS[0];
+      const readyBadge = p.isHost
+        ? '<span class="roster-ready-badge ready">👑 HOST</span>'
+        : (p.ready
+            ? '<span class="roster-ready-badge ready">✅ READY</span>'
+            : '<span class="roster-ready-badge not-ready">⏳ CHOOSING CAR</span>');
+
       const div = document.createElement('div');
       div.className = `roster-item ${isMe ? 'me' : ''}`;
       div.innerHTML = `
         <span class="player-status-icon">${p.isHost ? '👑' : '🏎️'}</span>
         <span class="player-name">${p.name} ${isMe ? '(You)' : ''}</span>
         <span class="player-car-tag">${carCfg.name.split(' ')[0]}</span>
+        ${readyBadge}
       `;
       rosterEl.appendChild(div);
 
@@ -575,11 +606,113 @@ class ApexRacingGame {
     this.updateShowroomActiveCar(this.selectedCarIndex);
     const garageModal = document.getElementById('garage-selection-modal');
     const confirmBtn = document.getElementById('btn-confirm-garage');
-    if (confirmBtn) confirmBtn.textContent = confirmLabel;
+    const backBtn = document.getElementById('btn-back-from-garage');
+    const readyBtn = document.getElementById('btn-ready-garage');
+    if (confirmBtn) {
+      confirmBtn.style.display = 'block';
+      confirmBtn.textContent = confirmLabel;
+    }
+    if (backBtn) backBtn.style.display = 'block';
+    if (readyBtn) readyBtn.style.display = 'none';
+    if (garageModal) garageModal.classList.add('active');
+  }
+
+  openFriendShowroom() {
+    this.inShowroom = true;
+    this.showroomAngle = 0;
+    this.resetCarToStart();
+    document.body.classList.add('in-showroom');
+    this.updateShowroomActiveCar(this.selectedCarIndex);
+
+    const garageModal = document.getElementById('garage-selection-modal');
+    const confirmBtn = document.getElementById('btn-confirm-garage');
+    const backBtn = document.getElementById('btn-back-from-garage');
+    const readyBtn = document.getElementById('btn-ready-garage');
+
+    if (confirmBtn) confirmBtn.style.display = 'none';
+    if (backBtn) backBtn.style.display = 'none';
+    if (readyBtn) {
+      readyBtn.style.display = 'block';
+      readyBtn.textContent = this.isReady ? '⏳ READY! WAITING FOR HOST...' : '✅ READY TO RACE';
+      readyBtn.style.background = this.isReady
+        ? 'linear-gradient(135deg, #10b981, #047857)'
+        : 'linear-gradient(135deg, #22c55e, #16a34a)';
+    }
+
     if (garageModal) garageModal.classList.add('active');
   }
 
   setupUI() {
+    // 0. Name Profile Modal Handling
+    const nameModal = document.getElementById('name-modal');
+    const nameInput = document.getElementById('racer-name-input');
+    const btnSaveName = document.getElementById('btn-save-name');
+    const modeModal = document.getElementById('mode-selection-modal');
+
+    const handleSaveName = () => {
+      const val = (nameInput ? nameInput.value.trim() : '') || this.playerName || 'Racer';
+      this.playerName = val;
+      localStorage.setItem('apex_racer_name', val);
+      if (this.car) this.car.updateNameplate(val);
+      if (nameModal) nameModal.classList.remove('active');
+
+      const params = new URLSearchParams(window.location.search);
+      const room = params.get('room');
+      if (room) {
+        const cleanCode = room.trim().replace(/^apex-/i, '').replace(/[^0-9]/g, '');
+        if (modeModal) modeModal.classList.remove('active');
+        this.joinExistingRoom(cleanCode);
+      } else {
+        if (modeModal) modeModal.classList.add('active');
+      }
+    };
+
+    if (btnSaveName) {
+      btnSaveName.addEventListener('click', handleSaveName);
+    }
+    if (nameInput) {
+      nameInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleSaveName();
+      });
+    }
+
+    // Check if name is already stored
+    if (!this.playerName) {
+      if (modeModal) modeModal.classList.remove('active');
+      if (nameModal) nameModal.classList.add('active');
+      if (nameInput) setTimeout(() => nameInput.focus(), 250);
+    } else {
+      if (nameInput) nameInput.value = this.playerName;
+      if (this.car) this.car.updateNameplate(this.playerName);
+      const params = new URLSearchParams(window.location.search);
+      const room = params.get('room');
+      if (room) {
+        const cleanCode = room.trim().replace(/^apex-/i, '').replace(/[^0-9]/g, '');
+        if (modeModal) modeModal.classList.remove('active');
+        this.joinExistingRoom(cleanCode);
+      } else {
+        if (modeModal) modeModal.classList.add('active');
+      }
+    }
+
+    // Showroom Ready Button for Invited Friends
+    const readyBtn = document.getElementById('btn-ready-garage');
+    if (readyBtn) {
+      readyBtn.addEventListener('click', () => {
+        this.isReady = !this.isReady;
+        if (this.isReady) {
+          readyBtn.textContent = '⏳ READY! WAITING FOR HOST...';
+          readyBtn.style.background = 'linear-gradient(135deg, #10b981, #047857)';
+        } else {
+          readyBtn.textContent = '✅ READY TO RACE';
+          readyBtn.style.background = 'linear-gradient(135deg, #22c55e, #16a34a)';
+        }
+        if (this.network) {
+          this.network.sendReady(this.isReady);
+        }
+      });
+    }
+
     // 1. Landing Mode Selection Buttons
     document.getElementById('btn-start-solo-tour').addEventListener('click', () => {
       this.gameMode = 'solo';
@@ -860,14 +993,18 @@ class ApexRacingGame {
     }
 
     this.gameMode = 'multiplayer';
+    const racerName = this.playerName || `Racer ${Math.floor(Math.random() * 80 + 2)}`;
 
-    this.network.joinRoom(cleanCode, `Player ${Math.floor(Math.random() * 80 + 2)}`, this.selectedCarIndex)
+    this.network.joinRoom(cleanCode, racerName, this.selectedCarIndex)
       .then((displayCode) => {
         if (statusEl) {
-          statusEl.textContent = 'Connected successfully! Waiting for host to launch race 🏁';
+          statusEl.textContent = 'Connected successfully! Choose your hypercar & ready up 🏁';
           statusEl.style.color = '#22c55e';
         }
-        this.switchToGuestLobbyView(displayCode);
+        // Direct friend flow: Hide mode & lobby modals, drop directly into 3D visual showroom!
+        document.getElementById('mode-selection-modal').classList.remove('active');
+        document.getElementById('lobby-modal').classList.remove('active');
+        this.openFriendShowroom();
       })
       .catch((err) => {
         if (statusEl) {
@@ -1102,7 +1239,7 @@ class ApexRacingGame {
 
     // Podium rankings based on cumulative total
     const myCarCfg = CAR_CONFIGS[this.selectedCarIndex];
-    document.getElementById('gold-name').textContent = 'YOU';
+    document.getElementById('gold-name').textContent = this.playerName ? this.playerName.toUpperCase() : 'YOU';
     document.getElementById('gold-time').textContent = this.hud.formatTime(totalTime);
     document.getElementById('gold-car').textContent = myCarCfg.name;
 
@@ -1216,6 +1353,9 @@ class ApexRacingGame {
     const speedRatio = Math.min(1.2, speed / 139.0);
 
     if (this.cameraMode === 'cockpit') {
+      if (this.car && this.car.nameplateSprite) {
+        this.car.nameplateSprite.visible = false;
+      }
       // 1st-Person In-Seat Cockpit Driver View
       const rightVec = new THREE.Vector3(Math.cos(this.car.heading), 0, -Math.sin(this.car.heading));
       
@@ -1245,6 +1385,9 @@ class ApexRacingGame {
       this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, targetFOV, dt * 8);
       this.camera.updateProjectionMatrix();
     } else {
+      if (this.car && this.car.nameplateSprite) {
+        this.car.nameplateSprite.visible = true;
+      }
       // 3rd-Person Chase Camera
       const lookAheadDist = Math.min(28, 6 + speed * 0.28);
       const lookTarget = carPos.clone().addScaledVector(forwardVec, lookAheadDist);

@@ -561,6 +561,41 @@ export class Hypercar {
       this.shadowBlob.rotation.z = -this.heading;
     }
   }
+
+  updateNameplate(name = 'Player') {
+    if (typeof document === 'undefined') return;
+    this.playerName = name;
+    if (this.nameplateSprite) {
+      this.group.remove(this.nameplateSprite);
+      this.nameplateSprite = null;
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+    ctx.roundRect(4, 4, 248, 56, 12);
+    ctx.fill();
+
+    ctx.strokeStyle = '#00f0ff';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 24px Rajdhani, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(name.toUpperCase(), 128, 32);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+    const sprite = new THREE.Sprite(mat);
+    sprite.scale.set(3.2, 0.8, 1);
+    sprite.position.set(0, 1.9, 0);
+    this.nameplateSprite = sprite;
+    this.group.add(sprite);
+  }
 }
 
 // Remote Hypercar for Multiplayer Opponents

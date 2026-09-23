@@ -105,6 +105,7 @@ export class Hypercar {
       this.wheelRL = built.wheelRL;
       this.wheelRR = built.wheelRR;
       this.steeringWheel = built.steeringWheel;
+      this.steeringWheelBaseQuat = this.steeringWheel ? this.steeringWheel.quaternion.clone() : null;
       this.flames = built.flames;
       this.taillightMat = built.taillightMat;
       this.bodyMeshes = built.bodyMeshes;
@@ -475,7 +476,11 @@ export class Hypercar {
       this.wheelRR.rotation.set(roll, 0, 0);
     }
     if (this.steeringWheel) {
-      this.steeringWheel.rotation.z = -this.steerAngle * 2.5;
+      if (!this.steeringWheelBaseQuat) {
+        this.steeringWheelBaseQuat = this.steeringWheel.quaternion.clone();
+      }
+      this.steeringWheel.quaternion.copy(this.steeringWheelBaseQuat);
+      this.steeringWheel.rotateY(-this.steerAngle * 2.8);
     }
 
     // Nitro flames

@@ -244,20 +244,47 @@ class RacingAudio {
     this.ensureContext();
     if (this.muted || !this.ctx) return;
     const t = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
 
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(isGo ? 880 : 440, t); // High beep on GO
+    if (!isGo) {
+      // Powerful punchy countdown beep (3, 2, 1)
+      const osc1 = this.ctx.createOscillator();
+      const osc2 = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
 
-    gain.gain.setValueAtTime(0.2, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + (isGo ? 0.6 : 0.25));
+      osc1.type = 'sawtooth';
+      osc1.frequency.setValueAtTime(440, t);
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(880, t);
 
-    osc.connect(gain);
-    gain.connect(this.masterGain);
+      gain.gain.setValueAtTime(0.35, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.38);
 
-    osc.start(t);
-    osc.stop(t + (isGo ? 0.61 : 0.26));
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(this.masterGain);
+
+      osc1.start(t);
+      osc2.start(t);
+      osc1.stop(t + 0.4);
+      osc2.stop(t + 0.4);
+    } else {
+      // Energetic high-frequency launch fanfare for "GO!"
+      [880, 1174, 1760].forEach((freq) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, t);
+
+        gain.gain.setValueAtTime(0.3, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
+
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc.start(t);
+        osc.stop(t + 0.82);
+      });
+    }
   }
 }
 

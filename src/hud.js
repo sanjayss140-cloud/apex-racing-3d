@@ -34,13 +34,22 @@ export class RacingHUD {
     canvas.style.height = `${cssHeight}px`;
   }
 
-  showPreparingMessage(msg = 'WARMING UP TIRES...') {
-    if (this.countdownOverlay && this.countdownText) {
+  showPreparingMessage(msg = 'WARMING UP TIRES...', stageName = '') {
+    if (this.countdownOverlay) {
+      if (this.countdownTimer) {
+        clearTimeout(this.countdownTimer);
+        this.countdownTimer = null;
+      }
       this.countdownOverlay.classList.add('active');
-      this.countdownText.textContent = msg;
-      this.countdownText.style.fontSize = '2.2rem';
-      this.countdownText.style.letterSpacing = '4px';
-      this.countdownText.style.color = '#00f0ff';
+      const stageEl = document.getElementById('countdown-stage-title');
+      const hintEl = document.getElementById('countdown-hint');
+      if (stageEl) stageEl.textContent = stageName ? stageName.toUpperCase() : 'GRID ALIGNMENT';
+      if (this.countdownText) {
+        this.countdownText.textContent = msg;
+        this.countdownText.style.fontSize = '3.5rem';
+        this.countdownText.style.color = '#38bdf8';
+      }
+      if (hintEl) hintEl.textContent = 'ENGINES REVVED • WAITING FOR GREEN LIGHT';
     }
   }
 
@@ -51,30 +60,56 @@ export class RacingHUD {
     }
   }
 
-  startCountdown(onComplete) {
+  startCountdown(stageTitle = '', onStartLaunch, onOverlayDone) {
+    if (this.countdownTimer) {
+      clearTimeout(this.countdownTimer);
+      this.countdownTimer = null;
+    }
+
     if (!this.countdownOverlay || !this.countdownText) {
-      if (onComplete) onComplete();
+      if (onStartLaunch) onStartLaunch();
+      if (onOverlayDone) onOverlayDone();
       return;
     }
 
-    this.hidePreparingMessage();
     this.countdownOverlay.classList.add('active');
-    const steps = ['3', '2', '1', 'GO!'];
+    const stageEl = document.getElementById('countdown-stage-title');
+    const hintEl = document.getElementById('countdown-hint');
+    if (stageEl) stageEl.textContent = stageTitle ? stageTitle.toUpperCase() : 'GRID LAUNCH';
+
+    const steps = [
+      { text: '3', color: '#ff2a5f', hint: '3 • ENGINES SPOOLING', isGo: false, duration: 950 },
+      { text: '2', color: '#ff9900', hint: '2 • TURBOS PRIMED', isGo: false, duration: 950 },
+      { text: '1', color: '#ffea00', hint: '1 • READY TO LAUNCH', isGo: false, duration: 950 },
+      { text: 'GO!', color: '#00ff88', hint: '🚀 GO! FLOOR IT!', isGo: true, duration: 800 }
+    ];
+
     let stepIdx = 0;
 
     const nextStep = () => {
       if (stepIdx < steps.length) {
-        const text = steps[stepIdx];
-        this.countdownText.textContent = text;
-        const isGo = text === 'GO!';
-        this.countdownText.style.color = isGo ? '#22c55e' : (text === '3' ? '#ef4444' : '#f59e0b');
-        audio.playCountdownBeep(isGo);
+        const step = steps[stepIdx];
+        this.countdownText.textContent = step.text;
+        this.countdownText.style.fontSize = step.isGo ? '13.5rem' : '12rem';
+        this.countdownText.style.color = step.color;
+        if (hintEl) {
+          hintEl.textContent = step.hint;
+          hintEl.style.borderColor = step.color;
+        }
+
+        audio.playCountdownBeep(step.isGo);
+
+        if (step.isGo) {
+          // UNLOCK CONTROLS AT THE EXACT SECOND "GO!" APPEARS!
+          if (onStartLaunch) onStartLaunch();
+        }
 
         stepIdx++;
-        setTimeout(nextStep, 900);
+        this.countdownTimer = setTimeout(nextStep, step.duration);
       } else {
         this.countdownOverlay.classList.remove('active');
-        if (onComplete) onComplete();
+        if (this.countdownText) this.countdownText.style.fontSize = '';
+        if (onOverlayDone) onOverlayDone();
       }
     };
 

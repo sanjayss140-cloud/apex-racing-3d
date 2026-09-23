@@ -238,12 +238,15 @@ class ApexRacingGame {
           this.startRaceSequence();
         } else if (data.type === 'STAGE_PROGRESS') {
           this.finishedStageRacers.add(data.playerId);
-          const totalRacers = this.network.players.size;
+          const totalRacers = Math.max(1, this.network.players.size);
           const finishedCount = this.finishedStageRacers.size;
-          const nextMapName = this.multiStage === 1 ? 'TOKYO' : (this.multiStage === 2 ? 'VOLCANO' : 'NEXT MAP');
+          const targetNextMap = (data.completedStage !== undefined ? data.completedStage : this.multiStage) + 1;
+          const nextMapCfg = MAP_CONFIGS[targetNextMap] || MAP_CONFIGS[1];
+          const nextMapName = nextMapCfg.name.toUpperCase();
+
           if (this.finishedStageRacers.has(this.network.myPeerId)) {
             this.showWaitingOnGrid(
-              `MAP ${this.multiStage} COMPLETED! 🏁`,
+              `STAGE COMPLETED! 🏁`,
               `ARRIVED AT ${nextMapName} GRID • WAITING FOR RACERS (${finishedCount}/${totalRacers})...`
             );
           } else {
@@ -251,10 +254,16 @@ class ApexRacingGame {
             const rName = p ? p.name : 'Rival racer';
             this.hud.showNotification(`🏁 ${rName} arrived at ${nextMapName} grid! Finish circuit!`);
           }
+
           if (this.network.isHost) {
-            this.checkAllPlayersStageFinished(this.multiStage);
+            this.checkAllPlayersStageFinished(targetNextMap);
           }
         } else if (data.type === 'START_NEXT_STAGE') {
+          if (this._stageTransitionTimer) {
+            clearTimeout(this._stageTransitionTimer);
+            this._stageTransitionTimer = null;
+          }
+          this._isTransitioningStage = false;
           this.hideWaitingOnGrid();
           this.finishedStageRacers.clear();
           const targetStage = data.stageIndex !== undefined ? data.stageIndex : (data.mapIndex || 0);
@@ -481,7 +490,7 @@ class ApexRacingGame {
     }
   }
 
-  startRaceSequence() {
+  startRaceSequence(customStageTitle = null) {
     this.inShowroom = false;
     this.isCountingDown = true;
     this.raceFinished = false;
@@ -493,15 +502,25 @@ class ApexRacingGame {
     this.resetCarToStart();
     this.track.highlightCheckpoint(this.activeCheckpoint);
 
-    const stageTitle = this.gameMode === 'solo' ? `STAGE ${this.soloTourStage + 1} / 3` : 'WARMING UP TIRES...';
-    this.hud.showPreparingMessage(stageTitle);
+    const mapCfg = MAP_CONFIGS[this.activeMapIndex] || MAP_CONFIGS[0];
+    const mapName = mapCfg.name.toUpperCase();
+    const stageTitle = customStageTitle || (this.gameMode === 'solo'
+      ? `STAGE ${this.soloTourStage + 1} / 3 • ${mapName}`
+      : `ROUND ${this.multiStage + 1} / 3 • ${mapName}`);
 
     this.car.onModelReady(() => {
-      this.hud.startCountdown(() => {
-        this.isCountingDown = false;
-        this.elapsedTime = 0;
-        this.raceStartTime = performance.now();
-      });
+      this.hud.startCountdown(
+        stageTitle,
+        () => {
+          // Instantly unlock car controls at GO!
+          this.isCountingDown = false;
+          this.elapsedTime = 0;
+          this.raceStartTime = performance.now();
+        },
+        () => {
+          // Countdown overlay animation complete
+        }
+      );
     });
   }
 
@@ -1107,10 +1126,14 @@ class ApexRacingGame {
         this.car.forwardSpeed = 0;
         this.car.velocity.set(0, 0, 0);
 
-        const nextMapName = nextMapIndex === 1 ? 'TOKYO' : 'VOLCANO';
+        const nextMapCfg = MAP_CONFIGS[nextMapIndex] || MAP_CONFIGS[1];
+        const nextMapName = nextMapCfg.name.toUpperCase();
+        const totalRacers = Math.max(1, this.network.players.size);
+        const finishedCount = this.finishedStageRacers.size;
+
         this.showWaitingOnGrid(
-          `MAP ${nextMapIndex} COMPLETED! 🏁`,
-          `ARRIVED AT ${nextMapName} GRID • WAITING FOR RACERS (${this.finishedStageRacers.size}/${this.network.players.size})...`
+          `STAGE ${this.multiStage} FINISHED! 🏁`,
+          `ARRIVED AT ${nextMapName} GRID • WAITING FOR RACERS (${finishedCount}/${totalRacers})...`
         );
 
         this.network.broadcast({
@@ -1142,20 +1165,53 @@ class ApexRacingGame {
 
   checkAllPlayersStageFinished(nextMapIndex) {
     if (!this.network || !this.network.isHost) return;
-    const totalRacers = this.network.players.size;
-    if (this.finishedStageRacers.size >= totalRacers) {
-      this.finishedStageRacers.clear();
+    if (this._isTransitioningStage) return;
+
+    const totalRacers = Math.max(1, this.network.players.size);
+    const finishedCount = this.finishedStageRacers.size;
+
+    if (finishedCount >= totalRacers) {
+      this._isTransitioningStage = true;
+      if (this._stageTransitionTimer) {
+        clearTimeout(this._stageTransitionTimer);
+        this._stageTransitionTimer = null;
+      }
+
       setTimeout(() => {
         this.network.broadcast({
           type: 'START_NEXT_STAGE',
           mapIndex: nextMapIndex
         });
         this.hideWaitingOnGrid();
+        this.finishedStageRacers.clear();
         this.multiStage = nextMapIndex;
         this.switchMap(nextMapIndex);
         this.resetCarToStart(this.getMySlotIndex());
+        this._isTransitioningStage = false;
         this.startRaceSequence();
-      }, 1600);
+      }, 1000);
+    } else {
+      // Failsafe timer: if opponent took > 14 seconds, launch anyway so game never freezes
+      if (!this._stageTransitionTimer) {
+        this._stageTransitionTimer = setTimeout(() => {
+          this._stageTransitionTimer = null;
+          if (this.multiStage < nextMapIndex && !this._isTransitioningStage) {
+            console.log('[Multiplayer] Stage timeout: Auto-launching next stage');
+            this.finishedStageRacers.clear();
+            this._isTransitioningStage = true;
+            this.network.broadcast({
+              type: 'START_NEXT_STAGE',
+              mapIndex: nextMapIndex
+            });
+            this.hideWaitingOnGrid();
+            this.multiStage = nextMapIndex;
+            this.switchMap(nextMapIndex);
+            this.resetCarToStart(this.getMySlotIndex());
+            this._isTransitioningStage = false;
+            this.startRaceSequence();
+          }
+        }, 14000);
+      }
     }
   }
 
